@@ -1,0 +1,11 @@
+proyecto/
+|--- include/       # Archivos .h (Cabeceras)
+|   └── modulo.h
+|--- src/           # Archivos .c (Implementación)
+|   ├── main.c
+|   └── modulo.c
+|--- build/
+     |--- main.exe # Archivos .exe (compilados) 	
+
+
+Dentro de cada directorio, vamos creando carpetas para cada utilidad (ej. "Empleado" --> creamos la carpeta dentro de src/ y dentro de include/)
