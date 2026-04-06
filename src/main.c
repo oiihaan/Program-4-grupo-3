@@ -1,20 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../include/declaraciones.h"
+#include "../include/db.h"
+#include "../include/config.h"
+#include "../include/auth.h"
 
-/* --- MENU PRINCIPAL --- */
+int main() {
+    //cargar configuración
+    if (!config_cargar("./server.conf")) return 1;
 
-int main()
-{
+    //abrir base de datos
+    if (!db_abrir(config.db_ruta)) return 1;
+
+    //tablas
+    db_crear_tablas();
+
+    // 4. Login
+    if (!auth_login()) {
+        db_cerrar();
+        return 1;
+    }
+
+    // 5. Menú principal
     int opcion;
-
-    printf("=========================================\n");
-    printf(">>> INICIO DE SESION DEL AYUNTAMIENTO <<<\n");
-    printf("=========================================\n");
-    printf("Autenticando trabajador...\n[OK] Acceso concedido.\n");
-
-    do
-    {
+    do {
         printf("\n*** MENU PRINCIPAL DEL ADMINISTRADOR ***\n");
         printf("1. Gestion de espacios\n");
         printf("2. Gestion de noticias\n");
@@ -23,35 +32,22 @@ int main()
         printf("5. Salir\n");
         printf("Seleccion: ");
 
-        // evita bucle infinito si se mete texto
-        if (scanf("%d", &opcion) != 1)
-        {
+        if (scanf("%d", &opcion) != 1) {
             limpiarBuffer();
             opcion = 0;
         }
 
-        switch (opcion)
-        {
-        case 1:
-            submenuEspacios();
-            break;
-        case 2:
-            submenuNoticias();
-            break;
-        case 3:
-            submenuLicencias();
-            break;
-        case 4:
-            submenuConfiguracion();
-            break;
-        case 5:
-            printf("\n[INFO] Cerrando sesion local. Hasta pronto!\n");
-            break;
-        default:
-            printf("\n[ERROR] Opcion no valida. Por favor, introduce un numero del 1 al 5.\n");
-            break;
+        switch (opcion) {
+            case 1: submenuEspacios();      break;
+            case 2: submenuNoticias();      break;
+            case 3: submenuLicencias();     break;
+            case 4: submenuConfiguracion(); break;
+            case 5: printf("\n[INFO] Cerrando sesion. Hasta pronto!\n"); break;
+            default: printf("\n[ERROR] Opcion no valida.\n"); break;
         }
     } while (opcion != 5);
 
+    // 6. Cerrar BD
+    db_cerrar();
     return 0;
 }

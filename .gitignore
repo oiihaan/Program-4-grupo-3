@@ -1,2 +1,4 @@
 #-- ejecutables --
 "*.exe"
+# Base de datos
+*.db
