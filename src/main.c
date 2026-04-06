@@ -5,7 +5,18 @@
 #include "../include/config.h"
 #include "../include/auth.h"
 
+//INCLUDEs para cURL (lo de la API del tiempo)
+#include <curl/curl.h>
+#include "../include/tiempo.h"
+
+
+
+
+
 int main() {
+    //Inicializa para que no pete la app basicamente (Prepara RAM)
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+
     //cargar configuración
     if (!config_cargar("./server.conf")) return 1;
 
@@ -28,8 +39,9 @@ int main() {
         printf("1. Gestion de espacios\n");
         printf("2. Gestion de noticias\n");
         printf("3. Gestion de licencias\n");
-        printf("4. Configuracion\n");
-        printf("5. Salir\n");
+        printf("4. Consultar el tiempo\n");
+        printf("9. Configuracion\n");
+        printf("0. Salir\n");
         printf("Seleccion: ");
 
         if (scanf("%d", &opcion) != 1) {
@@ -41,11 +53,17 @@ int main() {
             case 1: submenuEspacios();      break;
             case 2: submenuNoticias();      break;
             case 3: submenuLicencias();     break;
-            case 4: submenuConfiguracion(); break;
-            case 5: printf("\n[INFO] Cerrando sesion. Hasta pronto!\n"); break;
+            case 4: mostrarTiempo();                       break;
+            case 9: submenuConfiguracion(); break;
+            case 0: printf("\n[INFO] Cerrando sesion. Hasta pronto!\n"); break;
             default: printf("\n[ERROR] Opcion no valida.\n"); break;
         }
-    } while (opcion != 5);
+    } while (opcion != 0);
+
+
+    
+    // Limpieza global antes de salir
+    curl_global_cleanup();
 
     // 6. Cerrar BD
     db_cerrar();

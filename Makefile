@@ -1,6 +1,6 @@
 CC = gcc
 SRCS = $(wildcard src/*.c)
-FLAGS = -lsqlite3
+FLAGS = -lsqlite3 -lcurl
 OUT = build/main.exe
 
 all:
