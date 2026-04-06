@@ -97,10 +97,18 @@ void db_crear_tablas() {
         ");"
     );
 
-// FUNCION AUXILIAR PARA HACER PRUEBAS CON LA BD
-db_ejecutar(
-    "INSERT OR IGNORE INTO Admin (dni, nombre_usuario, password, activo) "
-    "VALUES ('12345678A', 'admin', '1234', 1);"
-);
+    // FUNCION AUXILIAR PARA HACER PRUEBAS CON LA BD
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Admin (dni, nombre_usuario, password, activo) "
+        "VALUES ('12345678A', 'admin', '1234', 1);"
+    );
+    db_ejecutar(
+    "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
+    "VALUES ('Sala A', 20, 15.0, 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
+        "VALUES ('Auditorio', 200, 50.0, 1);"
+    );
     printf("[OK] Tablas creadas/verificadas.\n");
 }

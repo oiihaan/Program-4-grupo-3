@@ -1,6 +1,7 @@
 #include "../include/declaraciones.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "../include/espacios.h"
 
 
 void limpiarBuffer() {
@@ -26,7 +27,7 @@ void submenuEspacios() {
 
         switch (opcion) {
             case 1: printf("\n[+] Modulo: Anadir nuevo espacio...\n"); break;
-            case 2: printf("\n[+] Modulo: Listado de espacios disponibles...\n"); break;
+            case 2: espacios_listar(); break;
             case 3: printf("\n[+] Modulo: Consultando reservas de espacio...\n"); break;
             case 4: printf("\n[+] Modulo: Cancelacion de reservas...\n"); break;
             case 5: printf("\nVolviendo al menu principal...\n"); break;
