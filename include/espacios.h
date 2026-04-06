@@ -3,6 +3,7 @@
 
 void espacios_listar();
 void espacios_anadir();
-void espacios_baja();
+void espacios_cambiar_estado();
+
 
 #endif

@@ -40,7 +40,7 @@ void db_crear_tablas() {
     db_ejecutar(
         "CREATE TABLE IF NOT EXISTS Espacio ("
         "id_espacio INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "nombre TEXT NOT NULL,"
+        "nombre TEXT NOT NULL UNIQUE,"
         "capacidad INTEGER,"
         "precio_hora REAL,"
         "activo INTEGER DEFAULT 1"
