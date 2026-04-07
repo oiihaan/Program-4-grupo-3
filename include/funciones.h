@@ -6,7 +6,7 @@ void submenuEspacios();
 void submenuNoticias();
 void submenuLicencias();
 void submenuConfiguracion();
-
+char* capturar_contrasena();
 
 
 #endif 

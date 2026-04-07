@@ -12,5 +12,6 @@ extern Config config;
 
 int config_cargar(const char *ruta);
 void config_mostrar();
+int definir_intentos();
 
 #endif

@@ -104,3 +104,30 @@ void espacios_cambiar_estado() {
     else
         printf("[ERROR] No se pudo cambiar el estado.\n");
 }
+
+void eliminar_espacio() {
+    int id;
+    printf("\n--- ELIMINAR ESPACIO ---\n");
+    espacios_listar();
+
+    printf("\nID del espacio a eliminar: ");
+    if (scanf("%d", &id) != 1) {
+        printf("[ERROR] ID no válido.\n");
+        while (getchar() != '\n'); // Limpiar buffer
+        return;
+    }
+
+    char sql[128];
+    snprintf(sql, sizeof(sql), "DELETE FROM Espacio WHERE id_espacio=%d;", id);
+
+    if (db_ejecutar(sql)) {
+        // Comprobamos si realmente se borró alguna fila
+        if (sqlite3_changes(db) > 0) {
+            printf("[OK] Espacio %d eliminado de la base de datos.\n", id);
+        } else {
+            printf("[ADVERTENCIA] No se encontró ningún espacio con ID %d.\n", id);
+        }
+    } else {
+        printf("[ERROR] Error crítico al ejecutar la sentencia de borrado.\n");
+    }
+}

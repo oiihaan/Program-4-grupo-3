@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../include/declaraciones.h"
+#include "../include/funciones.h"
 #include "../include/db.h"
 #include "../include/config.h"
 #include "../include/auth.h"
@@ -53,7 +53,7 @@ int main() {
             case 1: submenuEspacios();      break;
             case 2: submenuNoticias();      break;
             case 3: submenuLicencias();     break;
-            case 4: mostrarTiempo();                       break;
+            case 4: mostrarTiempo();        break;
             case 9: submenuConfiguracion(); break;
             case 0: printf("\n[INFO] Cerrando sesion. Hasta pronto!\n"); break;
             default: printf("\n[ERROR] Opcion no valida.\n"); break;

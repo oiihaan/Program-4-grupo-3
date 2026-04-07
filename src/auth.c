@@ -1,5 +1,7 @@
 #include "../include/auth.h"
 #include "../include/db.h"
+#include "../include/config.h"
+#include "../include/funciones.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -14,8 +16,8 @@ static int callback_login(void *data, int cols, char **valores, char **nombres) 
 
 int auth_login() {
     char usuario[64];
-    char password[64];
-    int intentos = 3;
+    char* password;
+    int intentos = definir_intentos();
 
     printf("=========================================\n");
     printf(">>> INICIO DE SESION DEL AYUNTAMIENTO <<<\n");
@@ -24,8 +26,12 @@ int auth_login() {
     while (intentos > 0) {
         printf("\nUsuario: ");
         scanf("%63s", usuario);
-        printf("Password: ");
-        scanf("%63s", password);
+        limpiarBuffer();
+        password = capturar_contrasena();
+     if (password == NULL) {
+            printf("[ERROR] Error de memoria.\n");
+            return 0;
+        }
 
         char sql[256];
         snprintf(sql, sizeof(sql),
@@ -35,6 +41,7 @@ int auth_login() {
 
         int encontrado = 0;
         sqlite3_exec(db, sql, callback_login, &encontrado, NULL);
+        free(password);
 
         if (encontrado) {
             printf("\n[OK] Bienvenido, %s!\n", usuario);

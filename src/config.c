@@ -1,5 +1,6 @@
 #include "../include/config.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 //Para que lea el fichero server.conf, y guardar sus valores en memoria para que todo el programa los pueda usar
@@ -39,4 +40,29 @@ void config_mostrar() {
     printf("BD:      %s\n", config.db_ruta);
     printf("Admin:   %s\n", config.admin_usuario);
     printf("Puerto:  %s\n", config.server_puerto);
+}
+int definir_intentos() {
+    int intentos = 3; // Valor por defecto
+    FILE *f = fopen("./server.conf", "r");
+    if (!f) {
+        printf("[ERROR] No se encontro el fichero de configuracion: %s\n", "./server.conf");
+        return intentos; // Valor por defecto
+    }
+
+    char linea[256];
+    
+    while (fgets(linea, sizeof(linea), f)) {
+        if (linea[0] == '#' || linea[0] == '\n') continue;
+
+        char clave[128], valor[128];
+        if (sscanf(linea, "%127[^=]=%127s", clave, valor) == 2) {
+            if (strcmp(clave, "max_intentos") == 0) {
+                intentos = atoi(valor);
+                break;
+            }
+        }
+    }
+
+    fclose(f);
+    return intentos;
 }

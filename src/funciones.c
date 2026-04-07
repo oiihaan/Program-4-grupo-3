@@ -1,4 +1,4 @@
-#include "../include/declaraciones.h"
+#include "../include/funciones.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "../include/espacios.h"
@@ -13,12 +13,13 @@ void submenuEspacios() {
     int opcion;
     do {
         printf("\n--- GESTION DE ESPACIOS ---\n");
-        printf("1. Anadir Espacios\n");
-        printf("2. Listar espacios\n");
-        printf("3. Ver reservas de un espacio\n");
-        printf("4. Cancelar Reserva\n");
-        printf("5. Volver al menu principal\n");
+        printf("1. Listar espacios\n");
+        printf("2. Anadir Espacios\n");
+        printf("3. Eliminar Espacio\n");
+        printf("4. Ver reservas de un espacio\n");
+        printf("5. Cancelar Reserva\n");
         printf("6. Cambiar estado espacio (ACTIVO/BAJA)\n");
+        printf("0. Volver al menu principal\n");
         printf("Seleccion: ");
         
         if (scanf("%d", &opcion) != 1) {
@@ -27,15 +28,16 @@ void submenuEspacios() {
         }
 
         switch (opcion) {
-            case 1: espacios_anadir(); break;
-            case 2: espacios_listar(); break;
-            case 3: printf("\n[+] Modulo: Consultando reservas de espacio...\n"); break;
-            case 4: printf("\n[+] Modulo: Cancelacion de reservas...\n"); break;
-            case 5: printf("\nVolviendo al menu principal...\n"); break;
+            case 1: espacios_listar(); break;
+            case 2: espacios_anadir(); break;
+            case 3: eliminar_espacio(); break;
+            case 4: printf("\n[+] Modulo: Consultando reservas de espacio...\n"); break;
+            case 5: printf("\n[+] Modulo: Cancelacion de reservas...\n"); break;
             case 6: espacios_cambiar_estado(); break;
+            case 0: printf("\nVolviendo al menu principal...\n"); break;
             default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
         }
-    } while (opcion != 5);
+    } while (opcion != 0);
 }
 
 
@@ -47,7 +49,7 @@ void submenuNoticias() {
         printf("1. Publicar Noticia\n");
         printf("2. Editar Noticia\n");
         printf("3. Eliminar Noticia\n");
-        printf("4. Volver al menu principal\n");
+        printf("0. Volver al menu principal\n");
         printf("Seleccion: ");
         
         if (scanf("%d", &opcion) != 1) {
@@ -59,10 +61,10 @@ void submenuNoticias() {
             case 1: printf("\n[+] Modulo: Redactar nueva publicacion...\n"); break;
             case 2: printf("\n[+] Modulo: Edicion de noticias...\n"); break;
             case 3: printf("\n[+] Modulo: Eliminando noticia...\n"); break;
-            case 4: printf("\nVolviendo al menu principal...\n"); break;
+            case 0: printf("\nVolviendo al menu principal...\n"); break;
             default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
         }
-    } while (opcion != 4);
+    } while (opcion != 0);
 }
 
 void submenuLicencias() {
@@ -72,7 +74,7 @@ void submenuLicencias() {
         printf("1. Registrar expediente\n");
         printf("2. Cambiar de estado\n");
         printf("3. Consultar Expedientes\n");
-        printf("4. Volver al menu principal\n");
+        printf("0. Volver al menu principal\n");
         printf("Seleccion: ");
         
         if (scanf("%d", &opcion) != 1) {
@@ -84,10 +86,10 @@ void submenuLicencias() {
             case 1: printf("\n[+] Modulo: Registro de nuevo expediente...\n"); break;
             case 2: printf("\n[+] Modulo: Actualizando estado de licencia...\n"); break;
             case 3: printf("\n[+] Modulo: Busqueda de expedientes...\n"); break;
-            case 4: printf("\nVolviendo al menu principal...\n"); break;
+            case 0: printf("\nVolviendo al menu principal...\n"); break;
             default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
         }
-    } while (opcion != 4);
+    } while (opcion != 0);
 }
 
 
@@ -96,7 +98,7 @@ void submenuConfiguracion() {
     do {
         printf("\n--- CONFIGURACION ---\n");
         printf("1. Gestion de contrasenas y usuarios\n");
-        printf("2. Volver al menu principal\n");
+        printf("0. Volver al menu principal\n");
         printf("Seleccion: ");
         
         if (scanf("%d", &opcion) != 1) {
@@ -106,8 +108,64 @@ void submenuConfiguracion() {
 
         switch (opcion) {
             case 1: printf("\n[+] Modulo: Administracion de credenciales...\n"); break;
-            case 2: printf("\nVolviendo al menu principal...\n"); break;
+            case 0: printf("\nVolviendo al menu principal...\n"); break;
             default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
         }
-    } while (opcion != 2);
+    } while (opcion != 0);
+}
+#include <stdio.h>
+#include <stdlib.h>
+#include <termios.h>
+#include <unistd.h>
+#include "funciones.h"
+
+char* capturar_contrasena() {
+    struct termios viejo, nuevo;
+    char *password = NULL;
+    int i = 0;
+    int ch;
+
+    // Configuración de la terminal: desactivamos el eco (ECHO)
+    tcgetattr(STDIN_FILENO, &viejo);
+    nuevo = viejo;
+    nuevo.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &nuevo);
+
+    printf("Introduce tu clave: ");
+
+    while (1) {
+        ch = getchar();
+
+        if (ch == '\n' || ch == '\r') { // Enter
+            break;
+        } 
+        else if (ch == 127 || ch == 8) { // Backspace (Borrar)
+            if (i > 0) {
+                i--;
+                printf("\b \b"); // Mueve el cursor atrás, imprime espacio, vuelve atrás
+                password = (char *)realloc(password, (i + 1) * sizeof(char));
+            }
+        } 
+        else {
+            // Reservamos espacio para la nueva letra + el hueco del '\0'
+            char *temp = (char *)realloc(password, (i + 2) * sizeof(char));
+            if (temp == NULL) {
+                free(password);
+                return NULL;
+            }
+            password = temp;
+            password[i++] = (char)ch;
+            printf("*"); // El "engaño" visual
+        }
+    }
+
+    if (password != NULL) {
+        password[i] = '\0'; // Cerramos la cadena
+    }
+
+    // Restauramos la consola a su estado original
+    tcsetattr(STDIN_FILENO, TCSANOW, &viejo);
+    printf("\n");
+
+    return password; // ¡Recuerda hacer free() de esto en el main!
 }
