@@ -115,6 +115,12 @@ void mostrarTiempo() {
         return;
     }
 
+    // Comprobar que la respuesta es JSON y no un error HTML
+    if (strstr(resp.datos, "<html>") != NULL) {
+        printf("[ERROR] El servidor de la API no esta disponible. Intentalo mas tarde.\n");
+        free(resp.datos);
+        return;
+    }
 
     // Extraer cada array del JSON con la funcion de antes
     char *arr_fechas  = extraer_array(resp.datos, "time");
