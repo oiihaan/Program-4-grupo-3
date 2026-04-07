@@ -4,6 +4,8 @@
 #include "../include/db.h"
 #include "../include/config.h"
 #include "../include/auth.h"
+#include "../include/log.h"
+
 
 //INCLUDEs para cURL (lo de la API del tiempo)
 #include <curl/curl.h>
@@ -16,6 +18,9 @@
 int main() {
     //Inicializa para que no pete la app basicamente (Prepara RAM)
     curl_global_init(CURL_GLOBAL_DEFAULT);
+
+    //Log de encendido del sistema
+    log_escribir("El sistema se ha encendido correctamente");  
 
     //cargar configuración
     if (!config_cargar("./server.conf")) return 1;
@@ -55,16 +60,22 @@ int main() {
             case 3: submenuLicencias();     break;
             case 4: mostrarTiempo();        break;
             case 9: submenuConfiguracion(); break;
-            case 0: printf("\n[INFO] Cerrando sesion. Hasta pronto!\n"); break;
+            case 0:
+                 printf("\n[INFO] Cerrando sesion. Hasta pronto!\n"); 
+                 log_escribir("Ha cerrado la sesion");
+                 log_set_usuario("Sistema");
+                 break;
             default: printf("\n[ERROR] Opcion no valida.\n"); break;
         }
     } while (opcion != 0);
 
 
-    
+    //Log de apago del sistema antes de apagar
+    log_escribir("El sistema se ha apagado");
+
     // Limpieza global antes de salir
     curl_global_cleanup();
-
+    printf("Degub");
     // 6. Cerrar BD
     db_cerrar();
     return 0;

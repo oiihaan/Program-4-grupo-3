@@ -1,5 +1,6 @@
 #include "../include/espacios.h"
 #include "../include/db.h"
+#include "../include/log.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -63,8 +64,11 @@ void espacios_anadir() {
         "VALUES ('%s', %d, %.2f, 1);",
         nombre, capacidad, precio);
 
-    if (db_ejecutar(sql))
+    if (db_ejecutar(sql)){
         printf("[OK] Espacio '%s' añadido correctamente.\n", nombre);
+        char msg[200]; //Sobran ajustar luego si eso
+        snprintf(msg, sizeof(msg), "Ha agregado a la BD un nuevo  espacio llamado '%s'", nombre);
+        log_escribir(msg);}
     else
         printf("[ERROR] No se pudo añadir el espacio.\n");
 }
@@ -99,8 +103,11 @@ void espacios_cambiar_estado() {
         "UPDATE Espacio SET activo=%d WHERE id_espacio=%d;",
         nuevo_estado, id);
 
-    if (db_ejecutar(sql))
+    if (db_ejecutar(sql)){
         printf("[OK] Espacio %d ahora está %s.\n", id, nuevo_estado ? "ACTIVO" : "BAJA");
+        char msg[100]; //Sobran ajustar luego si eso
+        snprintf(msg, sizeof(msg), "Ha cambiado en la BD el estado del espacio con id %d  a '%s'", id,nuevo_estado ? "ACTIVO" : "BAJA" );
+        log_escribir(msg);}
     else
         printf("[ERROR] No se pudo cambiar el estado.\n");
 }
@@ -124,6 +131,9 @@ void eliminar_espacio() {
         // Comprobamos si realmente se borró alguna fila
         if (sqlite3_changes(db) > 0) {
             printf("[OK] Espacio %d eliminado de la base de datos.\n", id);
+            char msg[50]; //Sobran ajustar luego si eso
+            snprintf(msg, sizeof(msg), "Ha eliminado de la BD el espacio con id %d ", id);
+            log_escribir(msg);
         } else {
             printf("[ADVERTENCIA] No se encontró ningún espacio con ID %d.\n", id);
         }

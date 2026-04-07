@@ -1,0 +1,51 @@
+[2026-04-07 15:44:13] Sistema : El sistema se ha encendido correctamente
+[2026-04-07 15:47:23] Sistema : Ha buscado en la base de datos
+[2026-04-07 15:47:23] Sistema : Login fallido - intentos restantes: 4
+[2026-04-07 15:48:12] Sistema : Ha buscado en la base de datos
+[2026-04-07 15:48:12] Sistema : Login fallido - intentos restantes: 3
+[2026-04-07 15:48:18] Sistema : Ha buscado en la base de datos
+[2026-04-07 15:48:18] Sistema : Login fallido - intentos restantes: 2
+[2026-04-07 15:48:22] Sistema : Ha buscado en la base de datos
+[2026-04-07 15:48:22] Sistema : Login fallido - intentos restantes: 1
+[2026-04-07 15:48:30] Sistema : Ha buscado en la base de datos
+[2026-04-07 15:48:30] Sistema : Login fallido - intentos restantes: 0
+[2026-04-07 15:48:30] Sistema : Acceso bloqueado por exceso de intentos fallidos
+[2026-04-07 15:48:59] Sistema : El sistema se ha encendido correctamente
+[2026-04-07 15:49:40] Sistema : Ha buscado en la base de datos
+[2026-04-07 15:49:40] admin : Inicio de sesion exitoso
+[2026-04-07 15:50:46] admin : Ha cerrado la sesion
+[2026-04-07 15:50:46] Sistema : El sistema se ha apagado
+[2026-04-07 15:58:46] Sistema : El sistema se ha encendido correctamente
+[2026-04-07 15:58:53] Sistema : Ha buscado en la base de datos
+[2026-04-07 15:58:53] ad : Login fallido - intentos restantes: 4
+[2026-04-07 15:59:13] Sistema : Ha buscado en la base de datos
+[2026-04-07 15:59:13] admin : Inicio de sesion exitoso
+[2026-04-07 15:59:33] admin : Ha cerrado la sesion
+[2026-04-07 15:59:33] Sistema : El sistema se ha apagado
+[2026-04-07 15:59:42] Sistema : El sistema se ha encendido correctamente
+[2026-04-07 16:02:00] Sistema : El sistema se ha encendido correctamente
+[2026-04-07 16:02:06] Sistema : Ha buscado en la base de datos
+[2026-04-07 16:02:06] adim : Login fallido - intentos restantes: 4
+[2026-04-07 16:02:10] Sistema : Ha buscado en la base de datos
+[2026-04-07 16:02:10] admin : Inicio de sesion exitoso
+[2026-04-07 16:02:24] admin : Ha insertado un nuevo espacio a la BD
+[2026-04-07 16:16:43] admin : Ha cerrado la sesion
+[2026-04-07 16:16:43] Sistema : El sistema se ha apagado
+[2026-04-07 16:16:47] Sistema : El sistema se ha encendido correctamente
+[2026-04-07 16:17:16] Sistema : El sistema se ha encendido correctamente
+[2026-04-07 16:17:21] Sistema : Ha buscado en la base de datos
+[2026-04-07 16:17:21] admin : Inicio de sesion exitoso
+[2026-04-07 16:17:55] admin : msg
+[2026-04-07 16:18:31] admin : Ha cerrado la sesion
+[2026-04-07 16:18:31] Sistema : El sistema se ha apagado
+[2026-04-07 16:18:35] Sistema : El sistema se ha encendido correctamente
+[2026-04-07 16:18:38] Sistema : Ha buscado en la base de datos
+[2026-04-07 16:18:38] admin : Inicio de sesion exitoso
+[2026-04-07 16:19:06] admin : Ha agregado a la BD el espacio: 'unai'
+[2026-04-07 16:19:35] admin : Ha eliminado de la BD el espacio con id 43 
+[2026-04-07 16:19:49] admin : Ha cambiado en la BD el estado del espacio con id 51  a 'BAJA'
+[2026-04-07 16:20:14] admin : Ha cerrado la sesion
+[2026-04-07 16:20:14] Sistema : El sistema se ha apagado
+[2026-04-07 16:20:48] Sistema : El sistema se ha encendido correctamente
+[2026-04-07 16:21:18] Sistema : El sistema se ha encendido correctamente
+[2026-04-07 16:21:45] Sistema : El sistema se ha encendido correctamente
