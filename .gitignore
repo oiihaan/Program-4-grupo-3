@@ -1,4 +1,29 @@
-#-- ejecutables --
-"*.exe"
-# Base de datos
+# --- Ejecutables y Binarios 
+*.exe
+*.out
+*.app
+*.o
+*.obj
+
+# --- Bases de Datos y Datos locales 
 *.db
+*.sqlite
+# archivos temporales sqlite
+*.db-journal
+*.db-wal
+
+# --- Logs y temporales 
+*.log
+log.txt
+tmp/
+
+# # --- Carpetas de Compilación 
+# build/
+# bin/
+# obj/
+
+# --- Archivos de IDE 
+.vscode/
+.vs/
+*.user
+*.suo

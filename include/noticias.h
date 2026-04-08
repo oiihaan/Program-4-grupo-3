@@ -14,7 +14,7 @@ typedef struct {
 void mostrarTiempo();
 void noticia_publicar();
 void mostrarDeportes();
-void noticia_eliminar();
 void noticia_listar(); //Muestra todas las noticias, incluso las eliminadas
+void noticia_gestionar(); //Menu para editar o eliminar noticias
 
 #endif // NOTICIAS_H

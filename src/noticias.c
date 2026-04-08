@@ -65,6 +65,121 @@ void verNoticias() {
     } while (opcion != 0);
 }
 
+//Editar noticia
+void noticia_editar() {
+    int id;
+
+    printf("\n--- EDITAR NOTICIA ---\n");
+
+    // Listar solo las activas
+    char *err = NULL;
+    int total = 0;
+    int resultado = sqlite3_exec(db,
+        "SELECT id_publicacion, categoria, tipo, titulo, fecha_publicacion, estado "
+        "FROM Publicacion WHERE estado='ACTIVA';",
+        callback_listar_noticias, &total, &err);
+
+    if (resultado != SQLITE_OK) {
+        printf("[ERROR] %s\n", err);
+        sqlite3_free(err);
+        return;
+    }
+
+    if (total == 0) {
+        printf("[INFO] No hay noticias activas para editar.\n");
+        return;
+    }
+
+    printf("\nID de la noticia a editar: ");
+    if (scanf("%d", &id) != 1) {
+        printf("[ERROR] ID no valido.\n");
+        limpiarBuffer();
+        return;
+    }
+    limpiarBuffer();
+
+    int campo;
+    int editando = 1;
+
+    while (editando) {
+        printf("\n--- CAMPO A EDITAR (noticia ID %d) ---\n", id);
+        printf("1. Tipo\n");
+        printf("2. Categoria\n");
+        printf("3. Titulo\n");
+        printf("4. Enlace\n");
+        printf("0. Terminar edicion\n");
+        printf("Seleccion: ");
+
+        if (scanf("%d", &campo) != 1) {
+            limpiarBuffer();
+            continue;
+        }
+        limpiarBuffer();
+
+        if (campo == 0) {
+            editando = 0;
+            break;
+        }
+
+        char nuevo_valor[256];
+        const char *nombre_campo_sql = NULL;
+        const char *nombre_campo_log = NULL;
+
+        switch (campo) {
+            case 1:
+                printf("Nuevo tipo: ");
+                nombre_campo_sql = "tipo";
+                nombre_campo_log = "tipo";
+                break;
+            case 2:
+                printf("Nueva categoria: ");
+                nombre_campo_sql = "categoria";
+                nombre_campo_log = "categoria";
+                break;
+            case 3:
+                printf("Nuevo titulo: ");
+                nombre_campo_sql = "titulo";
+                nombre_campo_log = "titulo";
+                break;
+            case 4:
+                printf("Nuevo enlace: ");
+                nombre_campo_sql = "enlace";
+                nombre_campo_log = "enlace";
+                break;
+            default:
+                printf("[!] Opcion invalida.\n");
+                continue;
+        }
+
+        scanf(" %255[^\n]", nuevo_valor);
+        limpiarBuffer();
+
+        char sql[512];
+        snprintf(sql, sizeof(sql),
+            "UPDATE Publicacion SET %s='%s' "
+            "WHERE id_publicacion=%d AND estado='ACTIVA';",
+            nombre_campo_sql, nuevo_valor, id);
+
+        if (db_ejecutar(sql)) {
+            if (sqlite3_changes(db) > 0) {
+                printf("[OK] Campo '%s' actualizado correctamente.\n", nombre_campo_log);
+                char msg[300];
+                snprintf(msg, sizeof(msg),
+                    "Ha editado el campo '%s' de la publicacion con ID %d",
+                    nombre_campo_log, id);
+                log_escribir(msg);
+            } else {
+                printf("[ERROR] No existe ninguna noticia activa con ID %d.\n", id);
+                editando = 0;
+            }
+        } else {
+            printf("[ERROR] No se pudo actualizar el campo.\n");
+        }
+    }
+
+    printf("[INFO] Edicion finalizada para la noticia ID %d.\n", id);
+}
+
 //API de Open-Meteo
 #define URL_TIEMPO "https://api.open-meteo.com/v1/forecast?latitude=43.3128&longitude=-1.975&daily=weather_code,temperature_2m_max,temperature_2m_min,rain_sum&timezone=Europe%2FBerlin"
 
@@ -347,17 +462,20 @@ void noticia_listar() {
         printf("[INFO] No hay noticias registradas.\n");
     }
 }
-void noticia_eliminar() {
+
+
+void noticia_gestionar() {
     int id;
 
-    printf("\n--- ELIMINAR NOTICIA ---\n");
-//NO uso la funcion listarNoticias porque quiero ver solo las activas, esta funcion pasa de activa--->eliminada
+    printf("\n--- GESTIONAR NOTICIA ---\n");
+
+    // Listar todas las activas
     char *err = NULL;
     int total = 0;
     int resultado = sqlite3_exec(db,
         "SELECT id_publicacion, categoria, tipo, titulo, fecha_publicacion, estado "
         "FROM Publicacion WHERE estado='ACTIVA';",
-        callback_listar_noticias, &total, &err);  
+        callback_listar_noticias, &total, &err);
 
     if (resultado != SQLITE_OK) {
         printf("[ERROR] %s\n", err);
@@ -366,31 +484,178 @@ void noticia_eliminar() {
     }
 
     if (total == 0) {
-        printf("[INFO] No hay noticias registradas.\n");
+        printf("[INFO] No hay noticias activas.\n");
+        return;
     }
 
-    printf("\nID de la noticia a eliminar: ");
+    printf("\nID de la noticia: ");
     if (scanf("%d", &id) != 1) {
         printf("[ERROR] ID no valido.\n");
         limpiarBuffer();
         return;
     }
+    limpiarBuffer();
 
-    char sql[256];
-    snprintf(sql, sizeof(sql),
-        "UPDATE Publicacion SET estado='ELIMINADA' "
-        "WHERE id_publicacion=%d AND estado='ACTIVA';", id);
+    int accion;
+    printf("\n1. Editar\n");
+    printf("2. Eliminar\n");
+    printf("0. Cancelar\n");
+    printf("Seleccion: ");
 
-    if (db_ejecutar(sql)) {
-        if (sqlite3_changes(db) > 0) {
-            printf("[OK] Noticia con ID %d eliminada correctamente.\n", id);
-            char msg[200];
-            snprintf(msg, sizeof(msg), "Ha eliminado de la BD la publicacion con ID %d", id);
-            log_escribir(msg);
+    if (scanf("%d", &accion) != 1) {
+        limpiarBuffer();
+        return;
+    }
+    limpiarBuffer();
+
+    // --- ELIMINAR ---
+    if (accion == 2) {
+        char sql[256];
+        snprintf(sql, sizeof(sql),
+            "UPDATE Publicacion SET estado='ELIMINADA' "
+            "WHERE id_publicacion=%d AND estado='ACTIVA';", id);
+
+        if (db_ejecutar(sql)) {
+            if (sqlite3_changes(db) > 0) {
+                printf("[OK] Noticia con ID %d eliminada correctamente.\n", id);
+                char msg[200];
+                snprintf(msg, sizeof(msg), "Ha eliminado la publicacion con ID %d", id);
+                log_escribir(msg);
+            } else {
+                printf("[ERROR] No existe ninguna noticia activa con ID %d.\n", id);
+            }
         } else {
-            printf("[ERROR] No existe ninguna noticia activa con ID %d.\n", id);
+            printf("[ERROR] No se pudo eliminar la noticia.\n");
         }
-    } else {
-        printf("[ERROR] No se pudo eliminar la noticia.\n");
+        return;
+    }
+
+    // --- EDITAR ---
+    if (accion == 1) {
+        int campo;
+        int editando = 1;
+
+        while (editando) {
+            printf("\n--- CAMPO A EDITAR (noticia ID %d) ---\n", id);
+            printf("1. Tipo\n");
+            printf("2. Categoria\n");
+            printf("3. Titulo\n");
+            printf("4. Enlace\n");
+            printf("0. Terminar edicion\n");
+            printf("Seleccion: ");
+
+            if (scanf("%d", &campo) != 1) {
+                limpiarBuffer();
+                continue;
+            }
+            limpiarBuffer();
+
+            if (campo == 0) break;
+
+            char nuevo_valor[256];
+            const char *nombre_campo_sql = NULL;
+            const char *nombre_campo_log = NULL;
+
+            switch (campo) {
+                case 1:
+                    printf("Nuevo tipo: ");
+                    nombre_campo_sql = "tipo";
+                    nombre_campo_log = "tipo";
+                    break;
+                case 2:
+                    printf("Nueva categoria: ");
+                    nombre_campo_sql = "categoria";
+                    nombre_campo_log = "categoria";
+                    break;
+                case 3:
+                    printf("Nuevo titulo: ");
+                    nombre_campo_sql = "titulo";
+                    nombre_campo_log = "titulo";
+                    break;
+                case 4:
+                    printf("Nuevo enlace: ");
+                    nombre_campo_sql = "enlace";
+                    nombre_campo_log = "enlace";
+                    break;
+                default:
+                    printf("[!] Opcion invalida.\n");
+                    continue;
+            }
+
+            scanf(" %255[^\n]", nuevo_valor);
+            limpiarBuffer();
+
+            char sql[512];
+            snprintf(sql, sizeof(sql),
+                "UPDATE Publicacion SET %s='%s' "
+                "WHERE id_publicacion=%d AND estado='ACTIVA';",
+                nombre_campo_sql, nuevo_valor, id);
+
+            if (db_ejecutar(sql)) {
+                if (sqlite3_changes(db) > 0) {
+                    printf("[OK] Campo '%s' actualizado correctamente.\n", nombre_campo_log);
+                    char msg[300];
+                    snprintf(msg, sizeof(msg),
+                        "Ha editado el campo '%s' de la publicacion con ID %d",
+                        nombre_campo_log, id);
+                    log_escribir(msg);
+                } else {
+                    printf("[ERROR] No existe ninguna noticia activa con ID %d.\n", id);
+                    editando = 0;
+                }
+            } else {
+                printf("[ERROR] No se pudo actualizar el campo.\n");
+            }
+        }
+
+        printf("[INFO] Edicion finalizada para la noticia ID %d.\n", id);
     }
 }
+// NOTICIA ELIMINAR YA NO SE USA YA QUE ESTÁ IMPLEMENTADO EN GESTIONAR NOTICIAS, PERO LO DEJO POR SI A CASO.
+// void noticia_eliminar() {  
+//     int id;
+
+//     printf("\n--- ELIMINAR NOTICIA ---\n");
+// //NO uso la funcion listarNoticias porque quiero ver solo las activas, esta funcion pasa de activa--->eliminada
+//     char *err = NULL;
+//     int total = 0;
+//     int resultado = sqlite3_exec(db,
+//         "SELECT id_publicacion, categoria, tipo, titulo, fecha_publicacion, estado "
+//         "FROM Publicacion WHERE estado='ACTIVA';",
+//         callback_listar_noticias, &total, &err);  
+
+//     if (resultado != SQLITE_OK) {
+//         printf("[ERROR] %s\n", err);
+//         sqlite3_free(err);
+//         return;
+//     }
+
+//     if (total == 0) {
+//         printf("[INFO] No hay noticias registradas.\n");
+//     }
+
+//     printf("\nID de la noticia a eliminar: ");
+//     if (scanf("%d", &id) != 1) {
+//         printf("[ERROR] ID no valido.\n");
+//         limpiarBuffer();
+//         return;
+//     }
+
+//     char sql[256];
+//     snprintf(sql, sizeof(sql),
+//         "UPDATE Publicacion SET estado='ELIMINADA' "
+//         "WHERE id_publicacion=%d AND estado='ACTIVA';", id);
+
+//     if (db_ejecutar(sql)) {
+//         if (sqlite3_changes(db) > 0) {
+//             printf("[OK] Noticia con ID %d eliminada correctamente.\n", id);
+//             char msg[200];
+//             snprintf(msg, sizeof(msg), "Ha eliminado de la BD la publicacion con ID %d", id);
+//             log_escribir(msg);
+//         } else {
+//             printf("[ERROR] No existe ninguna noticia activa con ID %d.\n", id);
+//         }
+//     } else {
+//         printf("[ERROR] No se pudo eliminar la noticia.\n");
+//     }
+// }

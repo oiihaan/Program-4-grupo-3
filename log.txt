@@ -122,3 +122,31 @@
 [2026-04-08 10:52:38] admin : Inicio de sesion exitoso
 [2026-04-08 10:53:04] admin : Ha cerrado la sesion
 [2026-04-08 10:53:04] Sistema : El sistema se ha apagado
+[2026-04-08 11:24:52] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 11:29:33] Sistema : Ha buscado en la base de datos
+[2026-04-08 11:29:33] admin : Inicio de sesion exitoso
+[2026-04-08 11:32:13] admin : Ha cerrado la sesion
+[2026-04-08 11:32:13] Sistema : El sistema se ha apagado
+[2026-04-08 11:32:27] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 11:32:31] Sistema : Ha buscado en la base de datos
+[2026-04-08 11:32:31] admin : Inicio de sesion exitoso
+[2026-04-08 11:55:27] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 11:55:31] Sistema : Ha buscado en la base de datos
+[2026-04-08 11:55:31] admin : Inicio de sesion exitoso
+[2026-04-08 12:10:07] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 12:10:11] Sistema : Ha buscado en la base de datos
+[2026-04-08 12:10:11] admin : Inicio de sesion exitoso
+[2026-04-08 12:11:28] admin : Ha agregado a la BD una nueva publicacion titulada 'Baskonia 1-0'
+[2026-04-08 12:16:53] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 12:17:42] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 12:17:47] Sistema : Ha buscado en la base de datos
+[2026-04-08 12:17:47] admin : Inicio de sesion exitoso
+[2026-04-08 12:18:10] admin : Ha editado el campo 'tipo' de la publicacion con ID 1
+[2026-04-08 12:18:39] admin : Ha cerrado la sesion
+[2026-04-08 12:18:39] Sistema : El sistema se ha apagado
+[2026-04-08 12:38:43] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 12:38:46] Sistema : Ha buscado en la base de datos
+[2026-04-08 12:38:46] admin : Inicio de sesion exitoso
+[2026-04-08 12:39:58] admin : Ha creado el tipo de licencia 'Pesca'
+[2026-04-08 12:40:11] admin : Ha cerrado la sesion
+[2026-04-08 12:40:11] Sistema : El sistema se ha apagado

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "../include/espacios.h"
 #include "../include/noticias.h"
+#include "../include/licencias.h"
 
 void limpiarBuffer() {
     int c;
@@ -40,16 +41,13 @@ void submenuEspacios() {
     } while (opcion != 0);
 }
 
-
-
 void submenuNoticias() {
     int opcion;
     do {
         printf("\n--- GESTION DE NOTICIAS ---\n");
         printf("1. Publicar Noticia\n");
-        printf("2. Editar Noticia\n");
-        printf("3. Eliminar Noticia\n");
-        printf("4. Consultar Noticias\n");
+        printf("2. Gestionar Noticia (editar/eliminar)\n");
+        printf("3. Consultar Noticias\n");
         printf("0. Volver al menu principal\n");
         printf("Seleccion: ");
         
@@ -60,11 +58,33 @@ void submenuNoticias() {
 
         switch (opcion) {
             case 1: noticia_publicar(); break;
-            case 2: printf("\n[+] Modulo: Edicion de noticias...\n"); break;
-            case 3: noticia_eliminar(); break;
-            case 4: verNoticias(); break;
+            case 2: noticia_gestionar(); break;
+            case 3: verNoticias(); break;
             case 0: printf("\nVolviendo al menu principal...\n"); break;
             default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
+        }
+    } while (opcion != 0);
+}
+
+void submenuConsultaLicencias() {
+    int opcion;
+    do {
+        printf("\n--- CONSULTA DE EXPEDIENTES ---\n");
+        printf("1. Ver licencias\n");
+        printf("2. Tipos de licencia\n");
+        printf("0. Volver\n");
+        printf("Seleccion: ");
+
+        if (scanf("%d", &opcion) != 1) {
+            limpiarBuffer();
+            opcion = 0;
+        }
+
+        switch (opcion) {
+            case 1: licencias_listar();        break;
+            case 2: tipo_licencia_gestionar(); break;
+            case 0: printf("\nVolviendo...\n"); break;
+            default: printf("\n[!] Opcion invalida.\n");
         }
     } while (opcion != 0);
 }
@@ -78,16 +98,16 @@ void submenuLicencias() {
         printf("3. Consultar Expedientes\n");
         printf("0. Volver al menu principal\n");
         printf("Seleccion: ");
-        
+
         if (scanf("%d", &opcion) != 1) {
             limpiarBuffer();
             opcion = 0;
         }
 
         switch (opcion) {
-            case 1: printf("\n[+] Modulo: Registro de nuevo expediente...\n"); break;
-            case 2: printf("\n[+] Modulo: Actualizando estado de licencia...\n"); break;
-            case 3: printf("\n[+] Modulo: Busqueda de expedientes...\n"); break;
+            case 1: licencia_registrar();      break;
+            case 2: licencia_gestionar();      break;
+            case 3: submenuConsultaLicencias(); break;
             case 0: printf("\nVolviendo al menu principal...\n"); break;
             default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
         }

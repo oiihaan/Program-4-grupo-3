@@ -7,6 +7,7 @@ void submenuNoticias();
 void submenuLicencias();
 void submenuConfiguracion();
 char* capturar_contrasena();
+void submenuConsultaLicencias();
 
 
 #endif 
