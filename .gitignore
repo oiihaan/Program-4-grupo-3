@@ -14,11 +14,13 @@ build/
 *.db-wal
 tmpclaude*
 
-# --- Logs y temporales 
+# --- Logs y temporales
 *.log
 log.txt
 tmp/
 RESUMEN_PROYECTO.txt
+CAMBIOS_RESERVAS.txt
+DISTRIB_DIRECTORIOS.txt
 
 # # --- Carpetas de Compilación 
 # build/
