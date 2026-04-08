@@ -21,7 +21,8 @@ void submenuEspacios() {
         printf("4. Ver reservas de un espacio\n");
         printf("5. Crear reserva a un ciudadano\n");
         printf("6. Cancelar Reserva\n");
-        printf("7. Cambiar estado espacio (ACTIVO/BAJA)\n");
+        printf("7. Editar datos de las reservas\n");
+        printf("8. Cambiar estado espacio (ACTIVO/BAJA)\n");
         printf("0. Volver al menu principal\n");
         printf("Seleccion: ");
         
@@ -37,7 +38,8 @@ void submenuEspacios() {
             case 4: reservas_listar_por_espacio(); break;
             case 5: reservas_crear_Aciudadano(); break;
             case 6: reservas_cancelar(); break;
-            case 7: espacios_cambiar_estado(); break;
+            case 7: reservas_editar(); break;;
+            case 8: espacios_cambiar_estado(); break;
             case 0: printf("\nVolviendo al menu principal...\n"); break;
             default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
         }
