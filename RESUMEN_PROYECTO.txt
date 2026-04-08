@@ -1,0 +1,580 @@
+================================================================================
+RESUMEN DEL PROYECTO - SISTEMA DE GESTIÓN MUNICIPAL (Grupo 3)
+================================================================================
+Fecha de análisis: 08-04-2026
+Carpeta: Program-4-grupo-3
+
+================================================================================
+1. DESCRIPCIÓN GENERAL
+================================================================================
+
+Proyecto de Sistema Administrativo para Ayuntamiento desarrollado en C POSIX.
+Sistema completo con BD SQLite3, autenticación, auditoría y API externa.
+
+PROPÓSITO: Gestionar recursos municipales (espacios, licencias), noticias y
+datos meteorológicos mediante interfaz CLI con login administrativo.
+
+LENGUAJE: C (compatible Windows/Linux)
+COMPILADOR: GCC
+DEPENDENCIAS: sqlite3, curl, bibliotecas POSIX (termios)
+ESTADO: Funcional en fase de pruebas
+
+
+================================================================================
+2. ESTRUCTURA DE DIRECTORIOS
+================================================================================
+
+Program-4-grupo-3/
+│
+├── include/            → Headers (.h) de módulos
+│   ├── auth.h         → Autenticación
+│   ├── config.h       → Configuración del sistema
+│   ├── db.h           → Base de datos
+│   ├── espacios.h     → Gestión de espacios
+│   ├── funciones.h    → Menús y utilidades
+│   ├── licencias.h    → Gestión de licencias
+│   ├── log.h          → Sistema de auditoría
+│   └── noticias.h     → Noticias e información
+│
+├── src/                → Código fuente (.c)
+│   ├── main.c         → Punto de entrada y menú principal
+│   ├── auth.c         → Implementación de autenticación
+│   ├── config.c       → Carga de configuración
+│   ├── db.c           → Operaciones de BD
+│   ├── espacios.c     → CRUD de espacios
+│   ├── funciones.c    → Submenús (espacios, noticias, licencias)
+│   ├── licencias.c    → CRUD de licencias/expedientes
+│   ├── log.c          → Auditoría y logs
+│   ├── noticias.c     → Publicaciones e info meteorológica
+│   └── p.exe          → Ejecutable intermedio compilado
+│
+├── build/              → Directorio de compilación
+│   ├── main.exe       → Ejecutable principal compilado
+│   ├── admin.exe      → Ejecutable administrativo
+│   └── a.txt          → Archivo temporal
+│
+├── ayuntamiento.db     → Base de datos SQLite3 (datos persistentes)
+├── server.conf         → Archivo de configuración (puerto, BD, intentos)
+├── log.txt             → Archivo de auditoría (registro de acciones)
+├── Makefile            → Script para compilación automatizada
+├── DISTRIB_DIRECTORIOS.txt → Documentación de estructura
+└── .gitignore          → Exclusiones de control de versiones
+
+
+================================================================================
+3. MÓDULOS PRINCIPALES Y FUNCIONALIDADES
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MÓDULO: AUTENTICACIÓN (auth.c/auth.h)                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Función: Controlar acceso al sistema                                       │
+│ Características:                                                             │
+│  • Login con usuario + contraseña                                          │
+│  • Captura segura (sin mostrar contraseña - usa termios)                   │
+│  • Intentos limitados (configurables, default=5)                          │
+│  • Bloqueo tras excedencia de intentos                                     │
+│  • Auditoría de intentos fallidos en log.txt                              │
+│  • Query: SELECT FROM Admin WHERE usuario y password coinciden             │
+│                                                                             │
+│ Datos de prueba: usuario=admin, password almacenada en BD                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MÓDULO: CONFIGURACIÓN (config.c/config.h)                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Función: Gestionar parámetros globales del sistema                         │
+│ Archivo: server.conf                                                       │
+│                                                                             │
+│ Parámetros:                                                                │
+│  • db_ruta=./ayuntamiento.db    → Ubicación de la base de datos          │
+│  • admin_usuario=admin           → Usuario administrativo por defecto     │
+│  • server_puerto=8080            → Puerto del servidor (configurado)      │
+│  • max_intentos=5                → Máximo número de intentos de login     │
+│                                                                             │
+│ Funciones:                                                                 │
+│  • config_cargar()     → Lee parámetros desde server.conf                 │
+│  • config_mostrar()    → Muestra configuración actual en pantalla         │
+│  • definir_intentos()  → Obtiene max_intentos                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MÓDULO: BASE DE DATOS (db.c/db.h)                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Función: Persistencia y gestión de datos con SQLite3                       │
+│ Archivo: ayuntamiento.db                                                   │
+│                                                                             │
+│ Tablas creadas automáticamente al iniciar:                                │
+│                                                                             │
+│  1. Admin                                                                   │
+│     Campos: dni, nombre_usuario, password, activo                         │
+│     Propósito: Credenciales administrativas                               │
+│                                                                             │
+│  2. Espacio                                                                 │
+│     Campos: id_espacio, nombre, capacidad, precio_hora, activo            │
+│     Propósito: Salas/auditorios disponibles para reservar                 │
+│     Datos ejemplo: "Sala A" (20 personas, 15€/h)                         │
+│                    "Auditorio" (200 personas, 50€/h)                     │
+│                                                                             │
+│  3. Reserva                                                                 │
+│     Campos: id_reserva, id_espacio, dni_ciudadano, fecha, franja_inicio, │
+│              franja_fin, num_personas, cancelada                           │
+│     Propósito: Reservas de espacios por ciudadanos                        │
+│                                                                             │
+│  4. Publicacion                                                             │
+│     Campos: id_publicacion, tipo, categoria, titulo, enlace,              │
+│              dni_admin, fecha_publicacion, estado                          │
+│     Propósito: Noticias u anuncios municipales                            │
+│                                                                             │
+│  5. TipoLicencia                                                            │
+│     Campos: id_tipo, nombre, descripcion, requisitos, activo              │
+│     Propósito: Tipos de licencias/expedientes disponibles                 │
+│                                                                             │
+│  6. Licencia                                                                │
+│     Campos: id_licencia, id_tipo, dni_ciudadano, estado,                  │
+│              fecha_solicitud, fecha_expiracion                             │
+│     Propósito: Solicitudes de licencias de ciudadanos                     │
+│                                                                             │
+│ Funciones principales:                                                     │
+│  • db_abrir()          → Conecta a ayuntamiento.db                        │
+│  • db_cerrar()         → Cierra conexión a BD                             │
+│  • db_ejecutar()       → Ejecuta sentencias SQL genéricas                 │
+│  • db_crear_tablas()   → Crea tablas e inserta datos de prueba            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MÓDULO: GESTIÓN DE ESPACIOS (espacios.c/espacios.h)                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Función: Gestionar salas/auditorios disponibles para reservas              │
+│                                                                             │
+│ Operaciones CRUD:                                                          │
+│  • espacios_listar()         → Ver todos los espacios (SELECT *)          │
+│  • espacios_anadir()         → Crear nuevo espacio (INSERT)               │
+│  • eliminar_espacio()        → Borrar espacio de la BD (DELETE)           │
+│  • espacios_cambiar_estado() → Activar/desactivar espacio (UPDATE)        │
+│                                                                             │
+│ Información por espacio:                                                    │
+│  - Nombre identificativo (ej: "Sala A")                                    │
+│  - Capacidad máxima de personas                                            │
+│  - Precio por hora de uso                                                  │
+│  - Estado (ACTIVO / BAJA)                                                  │
+│                                                                             │
+│ Auditoría: Todas las acciones se registran en log.txt con timestamp       │
+│ Ejemplo log: "Ha agregado a la BD un nuevo espacio llamado 'Sala A'"     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MÓDULO: GESTIÓN DE LICENCIAS (licencias.c/licencias.h)                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Función: Gestionar expedientes administrativos de ciudadanos               │
+│                                                                             │
+│ Conceptos:                                                                  │
+│  • Licencia = Expediente/Permiso administrativo                            │
+│  • TipoLicencia = Categoría de expediente (ej: licencia de obra)          │
+│  • Estados: En revisión, Aprobada, Denegada, Caducada                    │
+│                                                                             │
+│ Operaciones:                                                               │
+│  • licencias_listar()       → Consultar todas las licencias               │
+│  • licencia_registrar()     → Nueva solicitud (DNI + tipo + fechas)       │
+│  • licencia_gestionar()     → Cambiar estado del expediente               │
+│  • tipo_licencia_gestionar()→ CRUD de tipos de licencia                   │
+│                                                                             │
+│ Flujo:                                                                      │
+│  1. Administrador registra solicitud con datos del ciudadano               │
+│  2. Sistema crea registro en tabla Licencia "En revisión"                 │
+│  3. Admin gestiona: aprueba, deniega o marca como caducada                │
+│  4. Cada cambio se registra en auditoría                                  │
+│                                                                             │
+│ Estados y transiciones:                                                    │
+│  En revisión → Aprobada (concedida)                                       │
+│  En revisión → Denegada (rechazada)                                       │
+│  Aprobada → Caducada (expiración de fecha)                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MÓDULO: GESTIÓN DE NOTICIAS (noticias.c/noticias.h)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Función: Publicar, editar y consultar noticias municipales                │
+│                                                                             │
+│ Operaciones de Noticias:                                                   │
+│  • noticia_publicar()  → Crear nueva publicación (INSERT)                 │
+│  • noticia_gestionar() → Editar/eliminar publicaciones (UPDATE/DELETE)    │
+│  • noticia_listar()    → Ver todas las noticias                           │
+│  • noticia_editar()    → Modificar campos de publicación                  │
+│                                                                             │
+│ Campos de Publicación:                                                     │
+│  - Tipo (municipal, aviso, comunicado, etc.)                              │
+│  - Categoría (urbanismo, servicios, eventos, etc.)                        │
+│  - Título descriptivo                                                      │
+│  - Enlace a más información                                                │
+│  - DNI del administrador que publicó                                       │
+│  - Fecha de publicación (automática)                                       │
+│  - Estado (ACTIVA / INACTIVA)                                              │
+│                                                                             │
+│ Características adicionales (Integración con API):                        │
+│  • API Externa: Open-Meteo (https://api.open-meteo.com/)                 │
+│  • Función mostrarTiempo()    → Obtiene meteorología Bilbao/Deusto      │
+│  • Coordenadas: 43.3128°N, 1.975°O (zona Deusto)                        │
+│  • Datos descargados vía cURL: temperatura máx/mín, lluvia, código clima │
+│  • Parseo manual de JSON para extraer datos diarios                       │
+│                                                                             │
+│ Menú de Consultas:                                                         │
+│  1. Noticias Deportivas (desde BD)                                        │
+│  2. Información Meteorológica (desde API externa)                         │
+│  3. Todas las Noticias (publicaciones de BD)                              │
+│                                                                             │
+│ Estructura de datos meteorología:                                          │
+│  typedef struct Dia {                                                      │
+│      char fecha[16];              // YYYY-MM-DD                           │
+│      float temp_max;              // Celsius                              │
+│      float temp_min;              // Celsius                              │
+│      float lluvia;                // mm                                    │
+│      int codigo_clima;            // 0-Despejado, 1-Parcial, etc.        │
+│  } Dia;                                                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MÓDULO: FUNCIONES Y MENÚS (funciones.c/funciones.h)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Función: Interfaz de usuario - Menús y submenús interactivos              │
+│                                                                             │
+│ Menú Principal (main.c):                                                  │
+│  0. Salir del sistema                                                      │
+│  1. Submenu Espacios (listar, crear, eliminar, cambiar estado)           │
+│  2. Submenu Noticias (publicar, gestionar, consultar)                    │
+│  3. Submenu Licencias (registrar, gestionar, consultar)                  │
+│  4. Submenu Configuración (gestión de credenciales - en desarrollo)      │
+│                                                                             │
+│ Submenús:                                                                  │
+│  • submenuEspacios()       → Operaciones sobre espacios                   │
+│  • submenuNoticias()       → Publicaciones y meteorología                 │
+│  • submenuLicencias()      → Expedientes administrativos                 │
+│  • submenuConfiguracion()  → Cambiar contraseña, parámetros              │
+│                                                                             │
+│ Funciones Auxiliares:                                                      │
+│  • limpiarBuffer()         → Limpia restos en stdin                       │
+│  • capturar_contrasena()   → Input seguro sin eco (usa termios)          │
+│                                                                             │
+│ Nota: Menu 4 (Configuración) está en desarrollo/incompleto               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MÓDULO: AUDITORÍA Y LOGS (log.c/log.h)                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Función: Registrar todas las acciones administrativas con trazabilidad    │
+│ Archivo: log.txt (texto plano)                                             │
+│                                                                             │
+│ Variables globales:                                                        │
+│  • usuario_sesion = usuario autenticado actualmente                       │
+│                                                                             │
+│ Funciones:                                                                 │
+│  • log_escribir(accion)           → Escribe acción con timestamp          │
+│  • log_login_escribir(usuario)    → Registra intentos de login            │
+│  • log_set_usuario(usuario)       → Establece usuario actual              │
+│  • log_get_usuario()              → Obtiene usuario actual                │
+│                                                                             │
+│ Formato de registro:                                                       │
+│  [YYYY-MM-DD HH:MM:SS] Usuario : Acción realizada                        │
+│                                                                             │
+│ Ejemplos de logs:                                                          │
+│  [2026-04-07 16:19:49] admin : Ha cambiado el estado del espacio id 51   │
+│  [2026-04-07 16:20:15] admin : Ha agregado nuevo expediente DNI 12345678 │
+│  [2026-04-07 16:21:00] admin : Ha aprobado licencia id 3                 │
+│                                                                             │
+│ Beneficios: Auditoría completa, debugging, análisis de uso del sistema   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+4. FLUJO DE EJECUCIÓN PRINCIPAL
+================================================================================
+
+1. INICIALIZACIÓN
+   ├─ curl_global_init()          → Inicializa librería cURL
+   ├─ log_escribir("Sistema encendido")
+   ├─ config_cargar("./server.conf")
+   ├─ db_abrir(ruta de BD)
+   └─ db_crear_tablas()           → Crea tablas si no existen
+
+2. AUTENTICACIÓN
+   └─ auth_login()                 → Requiere usuario + contraseña válidos
+      (máximo 5 intentos)
+
+3. MENÚ INTERACTIVO
+   ├─ Opción 1: Gestión de Espacios
+   ├─ Opción 2: Gestión de Noticias
+   ├─ Opción 3: Gestión de Licencias
+   ├─ Opción 4: Configuración (en desarrollo)
+   └─ Opción 0: Salir
+
+4. LIMPIEZA AL SALIR
+   ├─ curl_global_cleanup()
+   ├─ db_cerrar()
+   └─ Termina programa
+
+
+================================================================================
+5. TECNOLOGÍAS Y DEPENDENCIAS
+================================================================================
+
+Compilador:  GCC (gcc)
+Lenguaje:    C (estándar POSIX)
+
+Librerías externas:
+  • sqlite3      → Base de datos relacional (persistencia de datos)
+  • curl         → Acceso a APIs HTTP (descarga datos meteorológicos)
+  • termios      → Control de terminal (entrada sin eco de contraseña)
+
+Build:
+  • Makefile     → Automatiza compilación
+  • Comando: make
+  • Output: build/main.exe
+
+Compilación típica:
+  gcc -Iinclude -o build/main.exe src/*.c -lsqlite3 -lcurl
+
+
+================================================================================
+6. CONFIGURACIÓN Y ARCHIVOS
+================================================================================
+
+server.conf (Configuración del sistema)
+────────────────────────────────────────
+db_ruta=./ayuntamiento.db            # Ruta a la BD SQLite
+admin_usuario=admin                  # Usuario administrativo por defecto
+server_puerto=8080                   # Puerto del servidor
+max_intentos=5                       # Máximo intentos de login antes de bloqueo
+
+.gitignore
+────────────────────────────────────────
+Excluye archivos:
+  - *.exe        → Ejecutables compilados
+  - *.db         → Bases de datos
+  - log.txt      → Archivos de auditoría
+  - .vscode/     → Configuración local del editor
+
+
+================================================================================
+7. BASE DE DATOS - DETALLE DE TABLAS
+================================================================================
+
+Tabla: Admin
+───────────────────────────────────────────────
+Campos:
+  • dni (TEXT PRIMARY KEY)
+  • nombre_usuario (TEXT UNIQUE)
+  • password (TEXT)
+  • activo (INTEGER, 0/1)
+Propósito: Almacena credenciales administrativas
+
+Tabla: Espacio
+───────────────────────────────────────────────
+Campos:
+  • id_espacio (INTEGER PRIMARY KEY AUTOINCREMENT)
+  • nombre (TEXT)
+  • capacidad (INTEGER)
+  • precio_hora (REAL)
+  • activo (INTEGER, 0/1)
+Propósito: Registra salas/auditorios disponibles
+
+Tabla: Reserva
+───────────────────────────────────────────────
+Campos:
+  • id_reserva (INTEGER PRIMARY KEY AUTOINCREMENT)
+  • id_espacio (INTEGER, FK a Espacio)
+  • dni_ciudadano (TEXT)
+  • fecha (TEXT, YYYY-MM-DD)
+  • franja_inicio (TEXT, HH:MM)
+  • franja_fin (TEXT, HH:MM)
+  • num_personas (INTEGER)
+  • cancelada (INTEGER, 0/1)
+Propósito: Registra reservas de ciudadanos
+
+Tabla: Publicacion
+───────────────────────────────────────────────
+Campos:
+  • id_publicacion (INTEGER PRIMARY KEY AUTOINCREMENT)
+  • tipo (TEXT)
+  • categoria (TEXT)
+  • titulo (TEXT)
+  • enlace (TEXT)
+  • dni_admin (TEXT, FK a Admin)
+  • fecha_publicacion (TEXT, datetime actual)
+  • estado (TEXT, ACTIVA/INACTIVA)
+Propósito: Almacena noticias municipales
+
+Tabla: TipoLicencia
+───────────────────────────────────────────────
+Campos:
+  • id_tipo (INTEGER PRIMARY KEY AUTOINCREMENT)
+  • nombre (TEXT)
+  • descripcion (TEXT)
+  • requisitos (TEXT)
+  • activo (INTEGER, 0/1)
+Propósito: Define categorías de licencias/expedientes
+
+Tabla: Licencia
+───────────────────────────────────────────────
+Campos:
+  • id_licencia (INTEGER PRIMARY KEY AUTOINCREMENT)
+  • id_tipo (INTEGER, FK a TipoLicencia)
+  • dni_ciudadano (TEXT)
+  • estado (TEXT: En revisión, Aprobada, Denegada, Caducada)
+  • fecha_solicitud (TEXT, YYYY-MM-DD)
+  • fecha_expiracion (TEXT, YYYY-MM-DD)
+Propósito: Solicitudes/expedientes de ciudadanos
+
+
+================================================================================
+8. CARACTERÍSTICAS DE SEGURIDAD
+================================================================================
+
+✓ Autenticación requerida
+  - Login obligatorio al iniciar
+  - Máximo 5 intentos (configurable)
+  - Bloqueo tras excedencia
+
+✓ Captura segura de contraseña
+  - No se muestra en pantalla (sin echo)
+  - Implementado con termios (POSIX)
+
+✓ Auditoría completa
+  - Todas las acciones registradas en log.txt
+  - Timestamp automático
+  - Usuario responsable identificado
+
+✓ Gestión de estado
+  - Espacios: ACTIVO/BAJA
+  - Licencias: 4 estados (revisión, aprobada, denegada, caducada)
+  - Publicaciones: ACTIVA/INACTIVA
+
+⚠ NOTAS DE SEGURIDAD:
+  - No se detectan vulnerabilidades SQL injection (usar prepared statements)
+  - Las contraseñas en DB deben estar hasheadas (actualmente texto plano)
+  - No hay cifrado de comunicaciones (si se implementa API)
+
+
+================================================================================
+9. INTEGRACIONES EXTERNAS
+================================================================================
+
+API Open-Meteo (Meteorología)
+────────────────────────────────────────────
+URL: https://api.open-meteo.com/v1/forecast
+Ubicación: Bilbao/Deusto (43.3128°N, 1.975°O)
+Datos:
+  • Temperatura máxima/mínima (°C)
+  • Precipitación (mm)
+  • Código de clima (0-Despejado, 1-Parcial nublado, etc.)
+
+Implementación:
+  • Librería: cURL
+  • Función: mostrarTiempo()
+  • Parseo: Manual de JSON
+  • Período: Pronóstico a varios días
+
+Conexión:
+  • HTTP GET via cURL
+  • Formato: JSON
+  • Procesamiento: Extracción de arrays de datos diarios
+
+
+================================================================================
+10. ESTADO DEL PROYECTO
+================================================================================
+
+COMPLETADO Y FUNCIONAL:
+  ✓ Sistema de autenticación (login con intentos limitados)
+  ✓ Gestión de espacios (CRUD completo)
+  ✓ Gestión de licencias/expedientes (CRUD completo)
+  ✓ Gestión de noticias (CRUD completo)
+  ✓ Sistema de auditoría (logs con timestamp)
+  ✓ Integración con API meteorológica (Open-Meteo)
+  ✓ Base de datos SQLite3 (tablas y relaciones)
+  ✓ Compilación con Makefile
+
+EN DESARROLLO / INCOMPLETO:
+  ⚠ Módulo de Configuración (menú 4)
+    - Cambio de contraseñas no totalmente implementado
+    - Parámetros configurables limitados
+
+RECOMENDACIONES DE MEJORA:
+  • Implementar prepared statements (prevenir SQL injection)
+  • Hashear contraseñas en BD (usar bcrypt/argon2)
+  • Mejorar manejo de errores y excepciones
+  • Agregar validación de inputs más robusta
+  • Completar módulo de configuración
+  • Considerar API para interfaz web
+  • Documentación adicional de funciones
+
+
+================================================================================
+11. DATOS DE PRUEBA INICIALES
+================================================================================
+
+Espacios (insertados automáticamente):
+  1. Sala A       | 20 personas | 15€/hora
+  2. Auditorio    | 200 personas| 50€/hora
+
+Tipos de Licencias (ejemplos iniciales):
+  - Licencia de obra
+  - Permisos de comercio
+  - Expedientes de urbanismo
+
+Usuario Administrativo (por defecto):
+  Usuario: admin
+  Contraseña: (almacenada en ayuntamiento.db)
+
+
+================================================================================
+12. ARCHIVOS GENERADOS EN TIEMPO DE EJECUCIÓN
+================================================================================
+
+log.txt
+────────────────────────────────────────────
+Archivo de auditoría donde se registran:
+  • Intentos de login (exitosos y fallidos)
+  • Creación/eliminación de espacios
+  • Cambios de estado
+  • Gestión de licencias
+  • Publicación de noticias
+Formato: [TIMESTAMP] Usuario : Acción
+
+ayuntamiento.db
+────────────────────────────────────────────
+Base de datos SQLite3 que persiste:
+  • Datos de espacios
+  • Reservas
+  • Publicaciones
+  • Licencias/expedientes
+  • Usuarios administrativos
+  • Tipos de licencias
+
+
+================================================================================
+CONCLUSIÓN
+================================================================================
+
+Este es un SISTEMA ADMINISTRATIVO MODULAR Y ESCALABLE para gestión municipal.
+
+Características principales:
+  ✓ Interfaz CLI interactiva
+  ✓ Base de datos relacional (SQLite3)
+  ✓ Autenticación segura con auditoría
+  ✓ CRUD completo para 3 entidades principales (espacios, licencias, noticias)
+  ✓ Integración con API externa (meteorología)
+  ✓ Logs de auditoría con timestamp
+  ✓ Configuración centralizada
+
+Recomendado para:
+  • Gestión de recursos municipales
+  • Control administrativo de expedientes
+  • Reserva de espacios públicos
+  • Publicación de anuncios
+
+El código está bien estructurado en módulos independientes, facilitando
+mantenimiento y extensiones futuras.
+
+================================================================================
+Fin del análisis - 08-04-2026
+================================================================================

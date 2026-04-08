@@ -4,6 +4,7 @@
 #include "../include/espacios.h"
 #include "../include/noticias.h"
 #include "../include/licencias.h"
+#include "../include/reservas.h"
 
 void limpiarBuffer() {
     int c;
@@ -32,8 +33,8 @@ void submenuEspacios() {
             case 1: espacios_listar(); break;
             case 2: espacios_anadir(); break;
             case 3: eliminar_espacio(); break;
-            case 4: printf("\n[+] Modulo: Consultando reservas de espacio...\n"); break;
-            case 5: printf("\n[+] Modulo: Cancelacion de reservas...\n"); break;
+            case 4: reservas_listar_por_espacio(); break;
+            case 5: reservas_cancelar(); break;
             case 6: espacios_cambiar_estado(); break;
             case 0: printf("\nVolviendo al menu principal...\n"); break;
             default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");

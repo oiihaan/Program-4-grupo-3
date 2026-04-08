@@ -150,3 +150,19 @@
 [2026-04-08 12:39:58] admin : Ha creado el tipo de licencia 'Pesca'
 [2026-04-08 12:40:11] admin : Ha cerrado la sesion
 [2026-04-08 12:40:11] Sistema : El sistema se ha apagado
+[2026-04-08 17:27:30] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 17:27:41] Sistema : Ha buscado en la base de datos
+[2026-04-08 17:27:41] admin : Inicio de sesion exitoso
+[2026-04-08 17:36:31] admin : Ha cerrado la sesion
+[2026-04-08 17:36:31] Sistema : El sistema se ha apagado
+[2026-04-08 17:36:38] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 17:36:57] Sistema : Ha buscado en la base de datos
+[2026-04-08 17:36:57] admin : Inicio de sesion exitoso
+[2026-04-08 17:36:59] admin : Ha cerrado la sesion
+[2026-04-08 17:36:59] Sistema : El sistema se ha apagado
+[2026-04-08 17:42:19] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 17:42:26] Sistema : Ha buscado en la base de datos
+[2026-04-08 17:42:26] admin : Inicio de sesion exitoso
+[2026-04-08 18:39:54] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 18:40:00] Sistema : Ha buscado en la base de datos
+[2026-04-08 18:40:00] admin : Inicio de sesion exitoso
