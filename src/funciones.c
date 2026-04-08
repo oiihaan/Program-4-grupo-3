@@ -99,7 +99,7 @@ void submenuLicencias() {
     do {
         printf("\n--- GESTION DE LICENCIAS ---\n");
         printf("1. Registrar expediente\n");
-        printf("2. Cambiar de estado\n");
+        printf("2. Gestionar expediente (estado/eliminar)\n");
         printf("3. Consultar Expedientes\n");
         printf("0. Volver al menu principal\n");
         printf("Seleccion: ");

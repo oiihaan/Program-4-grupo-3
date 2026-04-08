@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 
 // ─── CALLBACKS ────────────────────────────────────────────────────────────────
 
@@ -45,9 +46,106 @@ static int callback_existe(void *data, int cols, char **valores, char **nombres)
     return 0;
 }
 
+static int dni_es_valido(const char *dni) {
+    static const char *letras = "TRWAGMYFPDXBNJZSQVHLCKE";
+    if (!dni || strlen(dni) != 9) return 0;
+
+    int numero = 0;
+    for (int i = 0; i < 8; i++) {
+        if (!isdigit((unsigned char)dni[i])) return 0;
+        numero = numero * 10 + (dni[i] - '0');
+    }
+
+    char letra = (char)toupper((unsigned char)dni[8]);
+    return letra == letras[numero % 23];
+}
+
+static int fecha_es_valida(const char *fecha) {
+    if (!fecha || strlen(fecha) != 10) return 0;
+    if (fecha[4] != '-' || fecha[7] != '-') return 0;
+
+    for (int i = 0; i < 10; i++) {
+        if (i == 4 || i == 7) continue;
+        if (!isdigit((unsigned char)fecha[i])) return 0;
+    }
+
+    int y = 0, m = 0, d = 0;
+    if (sscanf(fecha, "%4d-%2d-%2d", &y, &m, &d) != 3) return 0;
+    if (y < 1900 || m < 1 || m > 12 || d < 1) return 0;
+
+    int dias_mes[] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
+    int bisiesto = ((y % 4 == 0 && y % 100 != 0) || (y % 400 == 0));
+    if (bisiesto) dias_mes[1] = 29;
+    return d <= dias_mes[m - 1];
+}
+
+static void fecha_hoy_iso(char *dest, size_t n) {
+    time_t ahora = time(NULL);
+    struct tm *t = localtime(&ahora);
+    strftime(dest, n, "%Y-%m-%d", t);
+}
+
+static int fecha_es_igual_o_posterior(const char *base, const char *candidata) {
+    return strcmp(candidata, base) >= 0;
+}
+
+static int licencia_activa_duplicada(const char *dni, int id_tipo) {
+    const char *sql =
+        "SELECT COUNT(*) FROM Licencia "
+        "WHERE dni_ciudadano=? AND id_tipo=? "
+        "AND estado IN ('En revision','Aprobada');";
+    sqlite3_stmt *stmt = NULL;
+    int existe = 0;
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        return 0;
+    }
+    sqlite3_bind_text(stmt, 1, dni, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 2, id_tipo);
+
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        existe = sqlite3_column_int(stmt, 0) > 0;
+    }
+    sqlite3_finalize(stmt);
+    return existe;
+}
+
+static int transicion_estado_valida(const char *actual, const char *nuevo) {
+    if (!actual || !nuevo) return 0;
+    if (strcmp(actual, nuevo) == 0) return 0;
+
+    if (strcmp(actual, "En revision") == 0) {
+        return strcmp(nuevo, "Aprobada") == 0 || strcmp(nuevo, "Denegada") == 0;
+    }
+    if (strcmp(actual, "Aprobada") == 0) {
+        return strcmp(nuevo, "Caducada") == 0;
+    }
+    return 0;
+}
+
+static void licencias_marcar_caducadas() {
+    db_ejecutar(
+        "UPDATE Licencia "
+        "SET estado='Caducada' "
+        "WHERE estado='Aprobada' "
+        "AND date(fecha_expiracion) < date('now');"
+    );
+}
+
+static int cadena_vacia(const char *s) {
+    if (!s) return 1;
+    while (*s) {
+        if (!isspace((unsigned char)*s)) return 0;
+        s++;
+    }
+    return 1;
+}
+
 // ─── LISTAR LICENCIAS ─────────────────────────────────────────────────────────
 
 void licencias_listar() {
+    licencias_marcar_caducadas();
+
     int opcion;
     printf("\n--- CONSULTAR LICENCIAS ---\n");
     printf("1. Ver todas\n");
@@ -118,6 +216,8 @@ void licencias_listar() {
 // ─── REGISTRAR LICENCIA ───────────────────────────────────────────────────────
 
 void licencia_registrar() {
+    licencias_marcar_caducadas();
+
     printf("\n--- REGISTRAR NUEVA SOLICITUD ---\n");
 
     int total = 0;
@@ -169,11 +269,28 @@ void licencia_registrar() {
     scanf(" %31[^\n]", fecha_expiracion);
     limpiarBuffer();
 
-    // Fecha de solicitud automatica
     char fecha_solicitud[32];
-    time_t ahora = time(NULL);
-    struct tm *t = localtime(&ahora);
-    strftime(fecha_solicitud, sizeof(fecha_solicitud), "%Y-%m-%d", t);
+    fecha_hoy_iso(fecha_solicitud, sizeof(fecha_solicitud));
+
+    if (!dni_es_valido(dni)) {
+        printf("[ERROR] DNI invalido. Formato esperado: 12345678Z.\n");
+        return;
+    }
+
+    if (!fecha_es_valida(fecha_expiracion)) {
+        printf("[ERROR] Fecha de expiracion invalida. Usa YYYY-MM-DD.\n");
+        return;
+    }
+
+    if (!fecha_es_igual_o_posterior(fecha_solicitud, fecha_expiracion)) {
+        printf("[ERROR] La fecha de expiracion no puede ser anterior a hoy (%s).\n", fecha_solicitud);
+        return;
+    }
+
+    if (licencia_activa_duplicada(dni, id_tipo)) {
+        printf("[ERROR] Ya existe una licencia activa o en revision para ese DNI y tipo.\n");
+        return;
+    }
 
     char sql[512];
     snprintf(sql, sizeof(sql),
@@ -195,6 +312,8 @@ void licencia_registrar() {
 // ─── GESTIONAR LICENCIA (cambiar estado / eliminar) ───────────────────────────
 
 void licencia_gestionar() {
+    licencias_marcar_caducadas();
+
     printf("\n--- GESTIONAR LICENCIA ---\n");
 
     int total = 0;
@@ -250,9 +369,37 @@ void licencia_gestionar() {
 
     // --- CAMBIAR ESTADO ---
     if (accion == 1) {
-        printf("\n1. En revision\n2. Aprobada\n3. Denegada\n4. Caducada\n");
-        printf("Nuevo estado: ");
+        char estado_actual[32] = {0};
+        sqlite3_stmt *stmt_estado = NULL;
+        const char *sql_estado = "SELECT estado FROM Licencia WHERE id_licencia=?;";
+        if (sqlite3_prepare_v2(db, sql_estado, -1, &stmt_estado, NULL) != SQLITE_OK) {
+            printf("[ERROR] No se pudo consultar el estado actual.\n");
+            return;
+        }
+        sqlite3_bind_int(stmt_estado, 1, id);
+        if (sqlite3_step(stmt_estado) == SQLITE_ROW) {
+            const unsigned char *txt = sqlite3_column_text(stmt_estado, 0);
+            if (txt) snprintf(estado_actual, sizeof(estado_actual), "%s", txt);
+        }
+        sqlite3_finalize(stmt_estado);
 
+        if (estado_actual[0] == '\0') {
+            printf("[ERROR] No se pudo determinar el estado actual de la licencia.\n");
+            return;
+        }
+
+        if (strcmp(estado_actual, "En revision") == 0) {
+            printf("\nEstado actual: En revision\n");
+            printf("1. Aprobada\n2. Denegada\n");
+        } else if (strcmp(estado_actual, "Aprobada") == 0) {
+            printf("\nEstado actual: Aprobada\n");
+            printf("1. Caducada\n");
+        } else {
+            printf("[ERROR] La licencia esta en estado terminal ('%s') y no admite cambios.\n", estado_actual);
+            return;
+        }
+
+        printf("Nuevo estado: ");
         int opcion_estado;
         if (scanf("%d", &opcion_estado) != 1) {
             limpiarBuffer();
@@ -261,14 +408,16 @@ void licencia_gestionar() {
         limpiarBuffer();
 
         const char *nuevo_estado = NULL;
-        switch (opcion_estado) {
-            case 1: nuevo_estado = "En revision"; break;
-            case 2: nuevo_estado = "Aprobada";    break;
-            case 3: nuevo_estado = "Denegada";    break;
-            case 4: nuevo_estado = "Caducada";    break;
-            default:
-                printf("[!] Opcion invalida.\n");
-                return;
+        if (strcmp(estado_actual, "En revision") == 0) {
+            if (opcion_estado == 1) nuevo_estado = "Aprobada";
+            else if (opcion_estado == 2) nuevo_estado = "Denegada";
+        } else if (strcmp(estado_actual, "Aprobada") == 0) {
+            if (opcion_estado == 1) nuevo_estado = "Caducada";
+        }
+
+        if (!nuevo_estado || !transicion_estado_valida(estado_actual, nuevo_estado)) {
+            printf("[!] Transicion no permitida desde '%s'.\n", estado_actual);
+            return;
         }
 
         char sql[256];
@@ -288,6 +437,19 @@ void licencia_gestionar() {
 
     // --- ELIMINAR ---
     } else if (accion == 2) {
+        char confirmar;
+        printf("[CONFIRMAR] Esta accion elimina la licencia %d. Continuar? (s/n): ", id);
+        if (scanf(" %c", &confirmar) != 1) {
+            limpiarBuffer();
+            return;
+        }
+        limpiarBuffer();
+        confirmar = (char)tolower((unsigned char)confirmar);
+        if (confirmar != 's') {
+            printf("[INFO] Eliminacion cancelada.\n");
+            return;
+        }
+
         char sql[128];
         snprintf(sql, sizeof(sql),
             "DELETE FROM Licencia WHERE id_licencia=%d;", id);
@@ -304,6 +466,8 @@ void licencia_gestionar() {
         } else {
             printf("[ERROR] No se pudo eliminar la licencia.\n");
         }
+    } else if (accion != 0) {
+        printf("[!] Opcion invalida.\n");
     }
 }
 
@@ -350,6 +514,26 @@ void tipo_licencia_gestionar() {
             printf("Requisitos: ");
             scanf(" %255[^\n]", requisitos);
             limpiarBuffer();
+
+            if (cadena_vacia(nombre)) {
+                printf("[ERROR] El nombre del tipo no puede estar vacio.\n");
+                continue;
+            }
+
+            sqlite3_stmt *stmt_dup = NULL;
+            const char *sql_dup = "SELECT COUNT(*) FROM TipoLicencia WHERE nombre=?;";
+            int existe_nombre = 0;
+            if (sqlite3_prepare_v2(db, sql_dup, -1, &stmt_dup, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(stmt_dup, 1, nombre, -1, SQLITE_TRANSIENT);
+                if (sqlite3_step(stmt_dup) == SQLITE_ROW) {
+                    existe_nombre = sqlite3_column_int(stmt_dup, 0) > 0;
+                }
+                sqlite3_finalize(stmt_dup);
+            }
+            if (existe_nombre) {
+                printf("[ERROR] Ya existe un tipo con ese nombre.\n");
+                continue;
+            }
 
             char sql[768];
             snprintf(sql, sizeof(sql),
