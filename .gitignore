@@ -4,6 +4,7 @@
 *.app
 *.o
 *.obj
+build/
 
 # --- Bases de Datos y Datos locales 
 *.db
@@ -11,11 +12,13 @@
 # archivos temporales sqlite
 *.db-journal
 *.db-wal
+tmpclaude*
 
 # --- Logs y temporales 
 *.log
 log.txt
 tmp/
+RESUMEN_PROYECTO.txt
 
 # # --- Carpetas de Compilación 
 # build/
