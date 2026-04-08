@@ -44,7 +44,7 @@ static int callback_obtener_id(void *data, int cols, char **valores, char **nomb
 /* ===== FUNCIONES CRUD ===== */
 
 /* CREATE - Crear nueva reserva */
-void reservas_crear() {
+void reservas_crear_Aciudadano() {
     int id_espacio;
     char dni_ciudadano[16];
     char fecha[16];
@@ -52,15 +52,15 @@ void reservas_crear() {
     char franja_fin[6];
     int num_personas;
 
-    printf("\n--- CREAR NUEVA RESERVA ---\n");
-
-    printf("ID del espacio: ");
-    scanf("%d", &id_espacio);
-    getchar();  // Limpiar buffer
+    printf("\n--- CREAR NUEVA RESERVA A UN CIUDADANO ---\n");
 
     printf("DNI del ciudadano: ");
     scanf(" %15[^\n]", dni_ciudadano);
     getchar();
+
+    printf("ID del espacio: ");
+    scanf("%d", &id_espacio);
+    getchar();  // Limpiar buffer
 
     printf("Fecha de reserva (YYYY-MM-DD): ");
     scanf(" %15[^\n]", fecha);
@@ -105,8 +105,8 @@ void reservas_crear() {
 
         char msg[256];
         snprintf(msg, sizeof(msg),
-            "Ha creado una nueva reserva para el espacio %d (DNI: %s, Fecha: %s)",
-            id_espacio, dni_ciudadano, fecha);
+            "Ha creado una nueva reserva para el espacio %d para el ciudadano con Dni: %s)",
+            id_espacio, dni_ciudadano);
         log_escribir(msg);
     } else {
         printf("[ERROR] No se pudo crear la reserva.\n");

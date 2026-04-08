@@ -27,6 +27,12 @@ int db_ejecutar(const char *sql) {
     return 1;
 }
 
+char* obtenerDni(char* nombre){
+
+    
+}
+
+
 void db_crear_tablas() {
     db_ejecutar(
         "CREATE TABLE IF NOT EXISTS Admin ("
