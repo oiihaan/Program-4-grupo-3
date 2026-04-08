@@ -49,3 +49,76 @@
 [2026-04-07 16:20:48] Sistema : El sistema se ha encendido correctamente
 [2026-04-07 16:21:18] Sistema : El sistema se ha encendido correctamente
 [2026-04-07 16:21:45] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 09:13:41] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 09:13:45] Sistema : Ha buscado en la base de datos
+[2026-04-08 09:13:45] admin : Inicio de sesion exitoso
+[2026-04-08 09:14:46] admin : Ha cerrado la sesion
+[2026-04-08 09:14:46] Sistema : El sistema se ha apagado
+[2026-04-08 09:14:51] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 09:14:54] Sistema : Ha buscado en la base de datos
+[2026-04-08 09:14:54] admin : Inicio de sesion exitoso
+[2026-04-08 09:15:40] admin : Ha cerrado la sesion
+[2026-04-08 09:15:40] Sistema : El sistema se ha apagado
+[2026-04-08 09:19:51] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 09:19:55] Sistema : Ha buscado en la base de datos
+[2026-04-08 09:19:55] admin : Inicio de sesion exitoso
+[2026-04-08 09:20:31] admin : Ha cerrado la sesion
+[2026-04-08 09:20:31] Sistema : El sistema se ha apagado
+[2026-04-08 09:32:40] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 09:32:43] Sistema : Ha buscado en la base de datos
+[2026-04-08 09:32:43] admin : Inicio de sesion exitoso
+[2026-04-08 09:34:26] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 09:34:29] Sistema : Ha buscado en la base de datos
+[2026-04-08 09:34:30] admin : Inicio de sesion exitoso
+[2026-04-08 09:42:44] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 09:42:50] Sistema : Ha buscado en la base de datos
+[2026-04-08 09:42:50] admin : Inicio de sesion exitoso
+[2026-04-08 09:43:05] admin : Ha cerrado la sesion
+[2026-04-08 09:43:05] Sistema : El sistema se ha apagado
+[2026-04-08 10:13:07] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 10:13:11] Sistema : Ha buscado en la base de datos
+[2026-04-08 10:13:11] admin : Inicio de sesion exitoso
+[2026-04-08 10:13:40] admin : Ha agregado a la BD un nuevo  espacio llamado 'dd'
+[2026-04-08 10:14:13] admin : Ha cerrado la sesion
+[2026-04-08 10:14:13] Sistema : El sistema se ha apagado
+[2026-04-08 10:23:18] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 10:23:21] Sistema : Ha buscado en la base de datos
+[2026-04-08 10:23:21] admin : Inicio de sesion exitoso
+[2026-04-08 10:26:08] admin : Ha agregado a la BD una nueva publicacion titulada 'Benzema se rapa'
+[2026-04-08 10:28:39] admin : Ha cerrado la sesion
+[2026-04-08 10:28:39] Sistema : El sistema se ha apagado
+[2026-04-08 10:32:51] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 10:32:54] Sistema : Ha buscado en la base de datos
+[2026-04-08 10:32:54] admin : Inicio de sesion exitoso
+[2026-04-08 10:33:12] admin : Ha eliminado de la BD la publicacion con ID 1
+[2026-04-08 10:35:08] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 10:35:10] Sistema : Ha buscado en la base de datos
+[2026-04-08 10:35:11] admin : Inicio de sesion exitoso
+[2026-04-08 10:35:44] admin : Ha agregado a la BD una nueva publicacion titulada 'Benzema calvoo'
+[2026-04-08 10:36:13] admin : Ha eliminado de la BD la publicacion con ID 0
+[2026-04-08 10:39:34] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 10:39:38] Sistema : Ha buscado en la base de datos
+[2026-04-08 10:39:38] admin : Inicio de sesion exitoso
+[2026-04-08 10:39:51] admin : Ha eliminado de la BD la publicacion con ID 2
+[2026-04-08 10:40:07] admin : Ha agregado a la BD una nueva publicacion titulada 'aaa'
+[2026-04-08 10:40:17] admin : Ha eliminado de la BD la publicacion con ID 3
+[2026-04-08 10:42:17] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 10:42:20] Sistema : Ha buscado en la base de datos
+[2026-04-08 10:42:20] admin : Inicio de sesion exitoso
+[2026-04-08 10:45:35] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 10:45:38] Sistema : Ha buscado en la base de datos
+[2026-04-08 10:45:38] admin : Inicio de sesion exitoso
+[2026-04-08 10:47:44] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 10:50:40] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 10:50:44] Sistema : Ha buscado en la base de datos
+[2026-04-08 10:50:44] admin : Inicio de sesion exitoso
+[2026-04-08 10:51:07] admin : Ha cerrado la sesion
+[2026-04-08 10:51:07] Sistema : El sistema se ha apagado
+[2026-04-08 10:51:40] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 10:51:43] Sistema : Ha buscado en la base de datos
+[2026-04-08 10:51:43] admin : Inicio de sesion exitoso
+[2026-04-08 10:52:35] Sistema : El sistema se ha encendido correctamente
+[2026-04-08 10:52:38] Sistema : Ha buscado en la base de datos
+[2026-04-08 10:52:38] admin : Inicio de sesion exitoso
+[2026-04-08 10:53:04] admin : Ha cerrado la sesion
+[2026-04-08 10:53:04] Sistema : El sistema se ha apagado

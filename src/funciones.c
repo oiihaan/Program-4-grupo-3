@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../include/espacios.h"
-
+#include "../include/noticias.h"
 
 void limpiarBuffer() {
     int c;
@@ -49,6 +49,7 @@ void submenuNoticias() {
         printf("1. Publicar Noticia\n");
         printf("2. Editar Noticia\n");
         printf("3. Eliminar Noticia\n");
+        printf("4. Consultar Noticias\n");
         printf("0. Volver al menu principal\n");
         printf("Seleccion: ");
         
@@ -58,9 +59,10 @@ void submenuNoticias() {
         }
 
         switch (opcion) {
-            case 1: printf("\n[+] Modulo: Redactar nueva publicacion...\n"); break;
+            case 1: noticia_publicar(); break;
             case 2: printf("\n[+] Modulo: Edicion de noticias...\n"); break;
-            case 3: printf("\n[+] Modulo: Eliminando noticia...\n"); break;
+            case 3: noticia_eliminar(); break;
+            case 4: verNoticias(); break;
             case 0: printf("\nVolviendo al menu principal...\n"); break;
             default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
         }

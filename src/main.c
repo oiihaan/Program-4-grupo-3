@@ -9,7 +9,7 @@
 
 //INCLUDEs para cURL (lo de la API del tiempo)
 #include <curl/curl.h>
-#include "../include/tiempo.h"
+#include "../include/noticias.h"
 
 
 
@@ -44,8 +44,7 @@ int main() {
         printf("1. Gestion de espacios\n");
         printf("2. Gestion de noticias\n");
         printf("3. Gestion de licencias\n");
-        printf("4. Consultar el tiempo\n");
-        printf("9. Configuracion\n");
+        printf("4. Configuracion\n");
         printf("0. Salir\n");
         printf("Seleccion: ");
 
@@ -58,8 +57,7 @@ int main() {
             case 1: submenuEspacios();      break;
             case 2: submenuNoticias();      break;
             case 3: submenuLicencias();     break;
-            case 4: mostrarTiempo();        break;
-            case 9: submenuConfiguracion(); break;
+            case 4: submenuConfiguracion(); break;
             case 0:
                  printf("\n[INFO] Cerrando sesion. Hasta pronto!\n"); 
                  log_escribir("Ha cerrado la sesion");

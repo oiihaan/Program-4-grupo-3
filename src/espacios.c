@@ -3,6 +3,7 @@
 #include "../include/log.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static int callback_existe(void *data, int cols, char **valores, char **nombres) {
     int *existe = (int *)data;
@@ -12,8 +13,13 @@ static int callback_existe(void *data, int cols, char **valores, char **nombres)
 }
 
 static int callback_listar(void *data, int cols, char **valores, char **nombres) {
-    printf("  [%s] %-20s | Capacidad: %s | Precio/h: %s€ | %s\n",
+    int ancho_id = 3 - (int)strlen(valores[0]);
+    if (ancho_id < 0) ancho_id = 0;
+
+    printf("  [%s]%*s%-20s | Capacidad: %4s | Precio/h: %6s€ | %-6s\n",
         valores[0],
+        ancho_id + 1,
+        "",
         valores[1],
         valores[2],
         valores[3],

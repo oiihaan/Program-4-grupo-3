@@ -2,7 +2,7 @@
 CC = gcc
 CFLAGS = -Iinclude
 LIBS = -lsqlite3 -lcurl
-SRC = src/auth.c src/config.c src/db.c src/espacios.c src/funciones.c src/main.c src/tiempo.c src/log.c
+SRC = src/auth.c src/config.c src/db.c src/espacios.c src/funciones.c src/main.c src/noticias.c src/log.c
 OUT = build/main.exe
 
 # Regla principal
