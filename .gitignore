@@ -4,7 +4,7 @@
 *.app
 *.o
 *.obj
-build/
+
 
 # --- Bases de Datos y Datos locales 
 *.db
