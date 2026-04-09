@@ -1,5 +1,5 @@
-#ifndef DECLARACIONES_H
-#define DECLARACIONES_H
+#ifndef FUNCIONES_H
+#define FUNCIONES_H
 
 void limpiarBuffer();
 void submenuEspacios();

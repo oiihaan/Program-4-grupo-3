@@ -65,6 +65,7 @@ void verNoticias() {
     } while (opcion != 0);
 }
 
+/*
 //Editar noticia
 void noticia_editar() {
     int id;
@@ -179,6 +180,10 @@ void noticia_editar() {
 
     printf("[INFO] Edicion finalizada para la noticia ID %d.\n", id);
 }
+*/
+
+
+//AQUI EMPIEZA LA PARTE DEL TIEMPO 
 
 //API de Open-Meteo
 #define URL_TIEMPO "https://api.open-meteo.com/v1/forecast?latitude=43.3128&longitude=-1.975&daily=weather_code,temperature_2m_max,temperature_2m_min,rain_sum&timezone=Europe%2FBerlin"
@@ -508,29 +513,7 @@ void noticia_gestionar() {
     }
     limpiarBuffer();
 
-    // --- ELIMINAR ---
-    if (accion == 2) {
-        char sql[256];
-        snprintf(sql, sizeof(sql),
-            "UPDATE Publicacion SET estado='ELIMINADA' "
-            "WHERE id_publicacion=%d AND estado='ACTIVA';", id);
-
-        if (db_ejecutar(sql)) {
-            if (sqlite3_changes(db) > 0) {
-                printf("[OK] Noticia con ID %d eliminada correctamente.\n", id);
-                char msg[200];
-                snprintf(msg, sizeof(msg), "Ha eliminado la publicacion con ID %d", id);
-                log_escribir(msg);
-            } else {
-                printf("[ERROR] No existe ninguna noticia activa con ID %d.\n", id);
-            }
-        } else {
-            printf("[ERROR] No se pudo eliminar la noticia.\n");
-        }
-        return;
-    }
-
-    // --- EDITAR ---
+        // --- EDITAR ---
     if (accion == 1) {
         int campo;
         int editando = 1;
@@ -610,7 +593,35 @@ void noticia_gestionar() {
 
         printf("[INFO] Edicion finalizada para la noticia ID %d.\n", id);
     }
+
+     // --- ELIMINAR ---
+    if (accion == 2) {
+        char sql[256];
+        snprintf(sql, sizeof(sql),
+            "UPDATE Publicacion SET estado='ELIMINADA' "
+            "WHERE id_publicacion=%d AND estado='ACTIVA';", id);
+
+        if (db_ejecutar(sql)) {
+            if (sqlite3_changes(db) > 0) {
+                printf("[OK] Noticia con ID %d eliminada correctamente.\n", id);
+                char msg[200];
+                snprintf(msg, sizeof(msg), "Ha eliminado la publicacion con ID %d", id);
+                log_escribir(msg);
+            } else {
+                printf("[ERROR] No existe ninguna noticia activa con ID %d.\n", id);
+            }
+        } else {
+            printf("[ERROR] No se pudo eliminar la noticia.\n");
+        }
+        return;
+    }
+
 }
+
+   
+
+
+
 // NOTICIA ELIMINAR YA NO SE USA YA QUE ESTÁ IMPLEMENTADO EN GESTIONAR NOTICIAS, PERO LO DEJO POR SI A CASO.
 // void noticia_eliminar() {  
 //     int id;
