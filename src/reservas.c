@@ -1,6 +1,7 @@
 #include "../include/reservas.h"
 #include "../include/db.h"
 #include "../include/log.h"
+#include "../include/config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,7 +42,43 @@ static int callback_obtener_id(void *data, int cols, char **valores, char **nomb
     return 0;
 }
 
-/* ===== FUNCIONES CRUD ===== */
+//Funciones auxiliaares para el control de solapamiento de reservas
+
+
+//  (HH:MM) --> minutos totales ( Mas facil comparar numeros que string para el solapamiento)
+int hora_a_minutos(const char *hora) {
+    int horas, minutos;
+    sscanf(hora, "%d:%d", &horas, &minutos);
+    return horas * 60 + minutos;
+}
+
+//  -1 si hora1 es menor , 0 si  son iguales, 1 si hora1 es mayor
+int comparar_horas(const char *hora1, const char *hora2) {
+    int min1 = hora_a_minutos(hora1);
+    int min2 = hora_a_minutos(hora2);
+    if (min1 < min2) return -1;
+    if (min1 > min2) return 1;
+    return 0;
+}
+
+//Valida si cumple con el horario del confg
+int validar_horario(const char *hora) {
+    int min_hora = hora_a_minutos(hora);
+    int min_apertura = hora_a_minutos(get_apertura());
+    int min_cierre = hora_a_minutos(get_cierre());
+    
+    return (min_hora >= min_apertura && min_hora <= min_cierre);
+}
+
+// retorna 1 si se solapan, 0 si no
+int hay_solapamiento(const char *inicio1, const char *fin1, const char *inicio2, const char *fin2) {
+    int min_inicio1 = hora_a_minutos(inicio1);
+    int min_fin1 = hora_a_minutos(fin1);
+    int min_inicio2 = hora_a_minutos(inicio2);
+    int min_fin2 = hora_a_minutos(fin2);
+    
+    return (min_inicio1 < min_fin2 && min_inicio2 < min_fin1);
+}
 
 /* CREATE - Crear nueva reserva */
 void reservas_crear_Aciudadano() {

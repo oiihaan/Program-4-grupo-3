@@ -5,6 +5,10 @@
 #include "../include/noticias.h"
 #include "../include/licencias.h"
 #include "../include/reservas.h"
+// estas las he pillado que estaban abajo revisar si sirven de algo
+#include <termios.h>
+#include <unistd.h>
+#include "funciones.h"
 
 void limpiarBuffer() {
     int c;

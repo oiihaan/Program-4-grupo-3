@@ -7,6 +7,10 @@
 //Es como para leer los valores de un .env
 Config config;
 
+static char apertura[6];
+static char cierre[6];
+
+
 int config_cargar(const char *ruta) {
     FILE *f = fopen(ruta, "r");
     if (!f) {
@@ -27,6 +31,11 @@ int config_cargar(const char *ruta) {
                 strncpy(config.admin_usuario, valor, sizeof(config.admin_usuario));
             else if (strcmp(clave, "server_puerto") == 0)
                 strncpy(config.server_puerto, valor, sizeof(config.server_puerto));
+             else if (strcmp(clave, "hora_apertura") == 0)
+                strncpy(apertura, valor, sizeof(apertura));
+
+            else if (strcmp(clave, "hora_cierre") == 0)
+                strncpy(cierre, valor, sizeof(cierre));
         }
     }
 
@@ -65,4 +74,12 @@ int definir_intentos() {
 
     fclose(f);
     return intentos;
+}
+
+const char* get_apertura() {
+    return apertura;
+}
+
+const char* get_cierre() {
+    return cierre;
 }
