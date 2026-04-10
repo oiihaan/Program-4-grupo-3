@@ -42,6 +42,16 @@ static int callback_obtener_id(void *data, int cols, char **valores, char **nomb
     return 0;
 }
 
+int callback_capacidad(void *data, int argc, char **argv, char **col) {
+    int *cap = (int *)data;
+
+    if (argc > 0 && argv[0]) {
+        *cap = atoi(argv[0]);
+    }
+
+    return 0;
+}
+
 //Funciones auxiliaares para el control de solapamiento de reservas
 
 
@@ -80,7 +90,7 @@ int hay_solapamiento(const char *inicio1, const char *fin1, const char *inicio2,
     return (min_inicio1 < min_fin2 && min_inicio2 < min_fin1);
 }
 
-/* CREATE - Crear nueva reserva */
+/* CREATE - Crear nueva reserva */ //Esta se puede usar como base para cuado hagamos la de ciudadano agregando unos parametros determinados(dni ya metido etc)
 void reservas_crear_Aciudadano() {
     int id_espacio;
     char dni_ciudadano[16];
@@ -88,6 +98,7 @@ void reservas_crear_Aciudadano() {
     char franja_inicio[6];
     char franja_fin[6];
     int num_personas;
+    int capacidad_max;
 
     printf("\n--- CREAR NUEVA RESERVA A UN CIUDADANO ---\n");
 
@@ -98,27 +109,11 @@ void reservas_crear_Aciudadano() {
     printf("ID del espacio: ");
     scanf("%d", &id_espacio);
     getchar();  // Limpiar buffer
-
-    printf("Fecha de reserva (YYYY-MM-DD): ");
-    scanf(" %15[^\n]", fecha);
-    getchar();
-
-    printf("Hora de entrada (HH:MM): ");
-    scanf(" %5[^\n]", franja_inicio);
-    getchar();
-
-    printf("Hora de salida (HH:MM): ");
-    scanf(" %5[^\n]", franja_fin);
-    getchar();
-
-    printf("Número de personas: ");
-    scanf("%d", &num_personas);
-    getchar();
-
-    // Verificar que el espacio existe y está activo
+    
+  // Verificar que el espacio existe y está activo
     char sql_check[256];
     snprintf(sql_check, sizeof(sql_check),
-        "SELECT COUNT(*) FROM Espacio WHERE id_espacio=%d AND activo=1;", id_espacio);
+        "SELECT COUNT(*)  FROM Espacio WHERE id_espacio=%d AND activo=1;", id_espacio);
 
     int existe = 0;
     sqlite3_exec(db, sql_check, callback_contar_reservas, &existe, NULL);
@@ -127,6 +122,117 @@ void reservas_crear_Aciudadano() {
         printf("[ERROR] El espacio con ID %d no existe o está dado de baja.\n", id_espacio);
         return;
     }
+
+    printf("Fecha de reserva (YYYY-MM-DD): ");
+    scanf(" %15[^\n]", fecha);
+    getchar();
+
+    //Verificacion que la fecha es hoy o futura
+
+    time_t t = time(NULL);
+    struct tm hoy = *localtime(&t);
+
+    int anio, mes, dia;
+
+    // Parsear la fecha introducida (YYYY-MM-DD)
+    if (sscanf(fecha, "%d-%d-%d", &anio, &mes, &dia) != 3) {
+        printf("[ERROR] Formato de fecha inválido. Tiene que ser YYYY-MM-DD.\n");
+        return;
+    }
+
+    // Comparar fechas
+    if (anio < (hoy.tm_year + 1900) ||
+    (anio == (hoy.tm_year + 1900) && mes < (hoy.tm_mon + 1)) ||
+    (anio == (hoy.tm_year + 1900) && mes == (hoy.tm_mon + 1) && dia < hoy.tm_mday)) {
+
+        printf("[ERROR] La fecha no puede ser anterior a hoy (%d-%d-%d).\n",hoy.tm_year+1900,hoy.tm_mon+1,hoy.tm_mday);
+        return;
+    }
+
+    printf("\tHorario de apertura: de %s a %s\n",get_apertura(),get_cierre());
+
+    printf("Hora de entrada (HH:MM): ");
+    scanf(" %5[^\n]", franja_inicio);
+    getchar();
+
+    //Verificacion de la hora de entrada (server.conf)
+    if (!validar_horario(franja_inicio)) {
+        printf("[ERROR] Hora de entrada (%s) fuera del horario. El sistema funciona de 09:00 a 21:00.\n",
+            franja_inicio);
+        return;
+    }
+
+    printf("Hora de salida (HH:MM): ");
+    scanf(" %5[^\n]", franja_fin);
+    getchar();
+    //salida
+    if (!validar_horario(franja_fin)) {
+        printf("[ERROR] Hora de salida (%s) fuera del horario. El sistema funciona de 09:00 a 21:00.\n",
+            franja_fin);
+        return;
+    }
+
+    //Verificamos que tenga sentido las horas que ha metido
+    if (comparar_horas(franja_inicio, franja_fin) >= 0) {
+        printf("[ERROR] La hora de entrada debe ser anterior a la hora de salida.\n");
+        return;
+    }
+
+    //Verificacion TOCHA que mira en la base de datos
+
+    typedef struct { //Esto a futuro igual cambiar a objetos 
+        char inicio[6];
+        char fin[6];
+    } Franja;
+    
+    Franja franjas[24]; // Contando qeu como mucho se reservan cada 30 mins -- Si no argegar mas
+    int contador = 0;
+ 
+    char sql_query[512];
+    snprintf(sql_query, sizeof(sql_query),
+        "SELECT franja_inicio, franja_fin FROM Reserva "
+        "WHERE id_espacio=%d AND fecha='%s' AND cancelada=0;",
+        id_espacio, fecha);
+ 
+    sqlite3_stmt *stmt;
+    if (sqlite3_prepare_v2(db, sql_query, -1, &stmt, NULL) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            if (contador < 24) {  //Max de franjas 
+                strcpy(franjas[contador].inicio, (const char *)sqlite3_column_text(stmt, 0));
+                strcpy(franjas[contador].fin, (const char *)sqlite3_column_text(stmt, 1));
+                contador++;
+            }
+        }
+        sqlite3_finalize(stmt);
+    }
+
+    for (int i = 0; i < contador; i++) {
+        if (hay_solapamiento(franja_inicio, franja_fin, franjas[i].inicio, franjas[i].fin)) {
+            printf("[ERROR] La reserva se solapa con otra existente (%s-%s).\n",
+                franjas[i].inicio, franjas[i].fin);
+            return;
+        }
+    }
+
+
+    char sql_capa[256];
+    snprintf(sql_capa, sizeof(sql_capa), "SELECT capacidad FROM Espacio WHERE id_espacio=%d AND activo=1;", id_espacio);
+
+    sqlite3_exec(db, sql_capa, callback_capacidad, &capacidad_max, NULL);
+
+    printf("El espacio tiene una capacidad maxima de %d personas\n", capacidad_max);
+
+    printf("Número de personas: ");
+    scanf("%d", &num_personas);
+    getchar();
+
+    if (num_personas > capacidad_max) {
+    printf("[ERROR] El espacio solo admite %d personas.\n", capacidad_max);
+    return;
+    }
+
+    
+  
 
     // Insertar la reserva
     char sql[512];
