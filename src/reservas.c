@@ -2,6 +2,7 @@
 #include "../include/db.h"
 #include "../include/log.h"
 #include "../include/config.h"
+#include "../include/funciones.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -90,6 +91,72 @@ int hay_solapamiento(const char *inicio1, const char *fin1, const char *inicio2,
     return (min_inicio1 < min_fin2 && min_inicio2 < min_fin1);
 }
 
+
+//Verificar el valor de la fecha (Uso local SOLO)
+//Hay que poner Static????
+int verificarFecha(char* fecha) {
+    int anio, mes, dia;
+
+    // Parsear la fecha introducida (YYYY-MM-DD)
+    if (sscanf(fecha, "%d-%d-%d", &anio, &mes, &dia) != 3) {
+        printf("[ERROR] Formato de fecha invalido. Tiene que ser YYYY-MM-DD.\n");
+        return 1; //Fecha invalida
+    }
+
+    // Validar rangos
+    if (mes < 1 || mes > 12 || dia < 1 || dia > 31) {
+        printf("[ERROR] Fecha con valores fuera de rango.\n");
+        return 1; //Fecha invalida
+    }
+
+    // Validar dias segun el mes
+    int dias_mes[] = {31,28,31,30,31,30,31,31,30,31,30,31};
+    int bisiesto = ((anio % 4 == 0 && anio % 100 != 0) || (anio % 400 == 0));
+    if (bisiesto) dias_mes[1] = 29;
+    if (dia > dias_mes[mes - 1]) {
+        printf("[ERROR] El dia %d no existe en el mes %d.\n", dia, mes);
+        return 1; //Fecha invalida
+    }
+
+    // Verificacion que la fecha es hoy o futura
+    time_t t = time(NULL);
+    struct tm hoy = *localtime(&t);
+
+    if (anio < (hoy.tm_year + 1900) ||
+        (anio == (hoy.tm_year + 1900) && mes < (hoy.tm_mon + 1)) ||
+        (anio == (hoy.tm_year + 1900) && mes == (hoy.tm_mon + 1) && dia < hoy.tm_mday)) {
+        printf("[ERROR] La fecha no puede ser anterior a hoy (%d-%d-%d).\n",
+            hoy.tm_year+1900, hoy.tm_mon+1, hoy.tm_mday);
+        return 1; //Fecha invalida
+    }
+
+    return 0;
+}
+
+//Verificar el formato y rango de la hora
+int verificarHora(char* hora) {
+    int h, m;
+
+    if (sscanf(hora, "%d:%d", &h, &m) != 2) {
+        printf("[ERROR] Formato de hora invalido. Tiene que ser HH:MM.\n");
+        return 1;
+    }
+
+    if (h < 0 || h > 23) {
+        printf("[ERROR] La hora tiene que estar entre 00 y 23.\n");
+        return 1;
+    }
+
+    if (m < 0 || m > 59) {
+        printf("[ERROR] Los minutos tienen que estar entre 00 y 59.\n");
+        return 1;
+    }
+
+    return 0; // Hora valida
+}
+
+
+
 /* CREATE - Crear nueva reserva */ //Esta se puede usar como base para cuado hagamos la de ciudadano agregando unos parametros determinados(dni ya metido etc)
 void reservas_crear_Aciudadano() {
     int id_espacio;
@@ -123,37 +190,19 @@ void reservas_crear_Aciudadano() {
         return;
     }
 
+    do{
     printf("Fecha de reserva (YYYY-MM-DD): ");
     scanf(" %15[^\n]", fecha);
     getchar();
-
-    //Verificacion que la fecha es hoy o futura
-
-    time_t t = time(NULL);
-    struct tm hoy = *localtime(&t);
-
-    int anio, mes, dia;
-
-    // Parsear la fecha introducida (YYYY-MM-DD)
-    if (sscanf(fecha, "%d-%d-%d", &anio, &mes, &dia) != 3) {
-        printf("[ERROR] Formato de fecha inválido. Tiene que ser YYYY-MM-DD.\n");
-        return;
-    }
-
-    // Comparar fechas
-    if (anio < (hoy.tm_year + 1900) ||
-    (anio == (hoy.tm_year + 1900) && mes < (hoy.tm_mon + 1)) ||
-    (anio == (hoy.tm_year + 1900) && mes == (hoy.tm_mon + 1) && dia < hoy.tm_mday)) {
-
-        printf("[ERROR] La fecha no puede ser anterior a hoy (%d-%d-%d).\n",hoy.tm_year+1900,hoy.tm_mon+1,hoy.tm_mday);
-        return;
-    }
+    }while (verificarFecha(fecha) == 1);
 
     printf("\tHorario de apertura: de %s a %s\n",get_apertura(),get_cierre());
 
+    do{
     printf("Hora de entrada (HH:MM): ");
     scanf(" %5[^\n]", franja_inicio);
     getchar();
+    }while(verificarHora(franja_inicio) == 1);
 
     //Verificacion de la hora de entrada (server.conf)
     if (!validar_horario(franja_inicio)) {
@@ -162,9 +211,13 @@ void reservas_crear_Aciudadano() {
         return;
     }
 
+    do{
     printf("Hora de salida (HH:MM): ");
     scanf(" %5[^\n]", franja_fin);
     getchar();
+    }while(verificarHora(franja_fin) == 1);
+
+
     //salida
     if (!validar_horario(franja_fin)) {
         printf("[ERROR] Hora de salida (%s) fuera del horario. El sistema funciona de 09:00 a 21:00.\n",
@@ -179,7 +232,6 @@ void reservas_crear_Aciudadano() {
     }
 
     //Verificacion TOCHA que mira en la base de datos
-
     typedef struct { //Esto a futuro igual cambiar a objetos 
         char inicio[6];
         char fin[6];
@@ -440,33 +492,60 @@ void reservas_editar() {
                 nuevo_valor, id_reserva);
             break;
         case 2:
+            do{
             printf("Nueva fecha (YYYY-MM-DD): ");
             scanf(" %127[^\n]", nuevo_valor);
+            getchar();
+            }while (verificarFecha(nuevo_valor) ==1);
             snprintf(sql_update, sizeof(sql_update),
                 "UPDATE Reserva SET fecha='%s' WHERE id_reserva=%d;",
                 nuevo_valor, id_reserva);
             break;
+
         case 3:
+            do{
             printf("Nueva hora de entrada (HH:MM): ");
-            scanf(" %127[^\n]", nuevo_valor);
+            scanf(" %10[^\n]", nuevo_valor);
+            getchar();
+            }while(verificarHora(nuevo_valor) == 1);
+                if (!validar_horario(nuevo_valor)) {
+                printf("[ERROR] Hora fuera del horario permitido.\n");
+                return;
+            }
             snprintf(sql_update, sizeof(sql_update),
                 "UPDATE Reserva SET franja_inicio='%s' WHERE id_reserva=%d;",
                 nuevo_valor, id_reserva);
             break;
+
         case 4:
+            do{
             printf("Nueva hora de salida (HH:MM): ");
             scanf(" %127[^\n]", nuevo_valor);
+            getchar();
+            }while(verificarHora(nuevo_valor) == 1);
+                if (!validar_horario(nuevo_valor)) {
+                    printf("[ERROR] Hora fuera del horario permitido.\n");
+                    return;
+                }
             snprintf(sql_update, sizeof(sql_update),
                 "UPDATE Reserva SET franja_fin='%s' WHERE id_reserva=%d;",
                 nuevo_valor, id_reserva);
             break;
-        case 5:
+        case 5: {
+            int nuevas_personas;
             printf("Nuevo número de personas: ");
-            scanf(" %127[^\n]", nuevo_valor);
+            if (scanf("%d", &nuevas_personas) != 1 || nuevas_personas < 1) {
+                printf("[ERROR] Numero de personas invalido.\n");
+                limpiarBuffer();
+                return;
+            }
+            getchar();
+            
             snprintf(sql_update, sizeof(sql_update),
-                "UPDATE Reserva SET num_personas=%s WHERE id_reserva=%d;",
-                nuevo_valor, id_reserva);
+                "UPDATE Reserva SET num_personas=%d WHERE id_reserva=%d;",
+                nuevas_personas, id_reserva);
             break;
+            }
         case 0:
             printf("Edición cancelada.\n");
             return;

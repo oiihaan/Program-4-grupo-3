@@ -55,14 +55,35 @@ void espacios_anadir() {
 
     printf("\n--- ANADIR NUEVO ESPACIO ---\n");
 
+    do{
     printf("Nombre: ");
     scanf(" %127[^\n]", nombre);
 
+        if(strlen(nombre) == 0){
+            printf("Porfavor, introduzca un nombre");
+        }
+
+    }while (strlen(nombre) == 0);
+
+    do{
     printf("Capacidad (personas): ");
     scanf("%d", &capacidad);
 
+        if(capacidad < 1){
+            printf("Valor invalido, porfavor intentelo de nuevo");
+        }
+
+    }while(capacidad < 1);
+
+    do{
     printf("Precio por hora (€): ");
     scanf("%f", &precio);
+
+        if(precio < 0){
+            printf("El precio no puede ser negativo, porfavor intentelo de nuevo");
+        }
+
+    }while(precio < 0);
 
     char sql[512];
     snprintf(sql, sizeof(sql),

@@ -390,18 +390,40 @@ void noticia_publicar() {
 
     printf("\n--- PUBLICAR NOTICIA ---\n");
 
+    do{
     printf("Tipo: ");
     scanf(" %63[^\n]", tipo);
+        if(strlen(tipo) == 0){
+            printf("[ERROR] La categoria no puede estar vacia.\n");
+        }
+    }while (strlen(tipo) == 0);
 
-    printf("Categoria (Deportes): ");
+    do{
+    printf("Categoria (Deportes, Cultura, Trafico, ...): ");
     scanf(" %63[^\n]", categoria);
+       if (strlen(categoria) == 0) {
+            printf("[ERROR] La categoria no puede estar vacia.\n");
+        }
+    }while(strlen(categoria) == 0);
 
+    do{
     printf("Titulo: ");
     scanf(" %255[^\n]", titulo);
+        if (strlen(titulo) == 0) {
+            printf("[ERROR] El titulo no puede estar vacio.\n");
+        }
+    }while (strlen(titulo) == 0);
 
+    do{
     printf("Enlace: ");
     scanf(" %255[^\n]", enlace);
+            if (strlen(enlace) == 0) {
+            printf("[ERROR] El enlace no puede estar vacio.\n");
+        }
 
+    } while (strlen(enlace) == 0);
+
+    //Esta verificacion la haremos mas tarde
     printf("DNI del admin: ");
     scanf(" %31[^\n]", dni_admin);
 
