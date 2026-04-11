@@ -5,6 +5,7 @@
 #include "../include/noticias.h"
 #include "../include/licencias.h"
 #include "../include/reservas.h"
+// estas las he pillado que estaban abajo revisar si sirven de algo
 #include <termios.h>
 #include <unistd.h>
 #include "funciones.h"
@@ -143,8 +144,11 @@ void submenuConfiguracion() {
         }
     } while (opcion != 0);
 }
-
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <termios.h>
+#include <unistd.h>
+#include "funciones.h"
 
 char* capturar_contrasena() {
     struct termios viejo, nuevo;

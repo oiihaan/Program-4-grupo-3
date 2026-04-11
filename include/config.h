@@ -14,4 +14,7 @@ int config_cargar(const char *ruta);
 void config_mostrar();
 int definir_intentos();
 
+const char* get_apertura();
+const char* get_cierre();
+
 #endif
