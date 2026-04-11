@@ -10,7 +10,7 @@ typedef struct {
     float lluvia;
     int codigo_clima;
 } Dia;
-
+void submenuNoticias();
 void mostrarTiempo();
 void noticia_publicar();
 void mostrarDeportes();

@@ -2,12 +2,10 @@
 #define FUNCIONES_H
 
 void limpiarBuffer();
-void submenuEspacios();
-void submenuNoticias();
-void submenuLicencias();
-void submenuConfiguracion();
 char* capturar_contrasena();
-void submenuConsultaLicencias();
+int dni_es_valido(const char *dni);
+int fecha_es_valida(const char *fecha);
+int fecha_es_hoy_o_posterior(const char *fecha);
 
 
 #endif 

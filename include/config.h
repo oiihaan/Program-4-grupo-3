@@ -10,6 +10,7 @@ typedef struct {
 
 extern Config config;
 
+void submenuConfiguracion();
 int config_cargar(const char *ruta);
 void config_mostrar();
 int definir_intentos();

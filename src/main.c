@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../include/funciones.h"
+#include "../include/espacios.h"
+#include "../include/noticias.h"
+#include "../include/licencias.h"
+#include "../include/config.h"
 #include "../include/db.h"
 #include "../include/config.h"
 #include "../include/auth.h"

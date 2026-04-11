@@ -1,6 +1,9 @@
 #include "../include/funciones.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <time.h>
 #include "../include/espacios.h"
 #include "../include/noticias.h"
 #include "../include/licencias.h"
@@ -10,147 +13,16 @@
 #include <unistd.h>
 #include "funciones.h"
 
-void limpiarBuffer() {
+void limpiarBuffer()
+{
     int c;
-    while ((c = getchar()) != '\n' && c != EOF) {}
+    while ((c = getchar()) != '\n' && c != EOF)
+    {
+    }
 }
 
-void submenuEspacios() {
-    int opcion;
-    do {
-        printf("\n--- GESTION DE ESPACIOS ---\n");
-        printf("1. Listar espacios\n");
-        printf("2. Anadir Espacios\n");
-        printf("3. Eliminar Espacio\n");
-        printf("4. Ver reservas de un espacio\n");
-        printf("5. Crear reserva a un ciudadano\n");
-        printf("6. Cancelar Reserva\n");
-        printf("7. Editar datos de las reservas\n");
-        printf("8. Cambiar estado espacio (ACTIVO/BAJA)\n");
-        printf("0. Volver al menu principal\n");
-        printf("Seleccion: ");
-        
-        if (scanf("%d", &opcion) != 1) {
-            limpiarBuffer();
-            opcion = 0; // Forzamos un valor invalido
-        }
-
-        switch (opcion) {
-            case 1: espacios_listar(); break;
-            case 2: espacios_anadir(); break;
-            case 3: eliminar_espacio(); break;
-            case 4: reservas_listar_por_espacio(); break;
-            case 5: reservas_crear_Aciudadano(); break;
-            case 6: reservas_cancelar(); break;
-            case 7: reservas_editar(); break;;
-            case 8: espacios_cambiar_estado(); break;
-            case 0: printf("\nVolviendo al menu principal...\n"); break;
-            default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
-        }
-    } while (opcion != 0);
-}
-
-void submenuNoticias() {
-    int opcion;
-    do {
-        printf("\n--- GESTION DE NOTICIAS ---\n");
-        printf("1. Publicar Noticia\n");
-        printf("2. Gestionar Noticia (editar/eliminar)\n");
-        printf("3. Consultar Noticias\n");
-        printf("0. Volver al menu principal\n");
-        printf("Seleccion: ");
-        
-        if (scanf("%d", &opcion) != 1) {
-            limpiarBuffer();
-            opcion = 0;
-        }
-
-        switch (opcion) {
-            case 1: noticia_publicar(); break;
-            case 2: noticia_gestionar(); break;
-            case 3: verNoticias(); break;
-            case 0: printf("\nVolviendo al menu principal...\n"); break;
-            default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
-        }
-    } while (opcion != 0);
-}
-
-void submenuConsultaLicencias() {
-    int opcion;
-    do {
-        printf("\n--- CONSULTA DE EXPEDIENTES ---\n");
-        printf("1. Ver licencias\n");
-        printf("2. Tipos de licencia\n");
-        printf("0. Volver\n");
-        printf("Seleccion: ");
-
-        if (scanf("%d", &opcion) != 1) {
-            limpiarBuffer();
-            opcion = 0;
-        }
-
-        switch (opcion) {
-            case 1: licencias_listar();        break;
-            case 2: tipo_licencia_gestionar(); break;
-            case 0: printf("\nVolviendo...\n"); break;
-            default: printf("\n[!] Opcion invalida.\n");
-        }
-    } while (opcion != 0);
-}
-
-void submenuLicencias() {
-    int opcion;
-    do {
-        printf("\n--- GESTION DE LICENCIAS ---\n");
-        printf("1. Registrar expediente\n");
-        printf("2. Gestionar expediente (estado/eliminar)\n");
-        printf("3. Consultar Expedientes\n");
-        printf("0. Volver al menu principal\n");
-        printf("Seleccion: ");
-
-        if (scanf("%d", &opcion) != 1) {
-            limpiarBuffer();
-            opcion = 0;
-        }
-
-        switch (opcion) {
-            case 1: licencia_registrar();      break;
-            case 2: licencia_gestionar();      break;
-            case 3: submenuConsultaLicencias(); break;
-            case 0: printf("\nVolviendo al menu principal...\n"); break;
-            default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
-        }
-    } while (opcion != 0);
-}
-
-
-void submenuConfiguracion() {
-    int opcion;
-    do {
-        printf("\n--- CONFIGURACION ---\n");
-        printf("1. Gestion de contrasenas y usuarios\n");
-        printf("0. Volver al menu principal\n");
-        printf("Seleccion: ");
-        
-        if (scanf("%d", &opcion) != 1) {
-            limpiarBuffer();
-            opcion = 0;
-        }
-
-        switch (opcion) {
-            case 1: printf("\n[+] Modulo: Administracion de credenciales...\n"); break;
-            case 0: printf("\nVolviendo al menu principal...\n"); break;
-            default: printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
-        }
-    } while (opcion != 0);
-}
-#include <stdio.h>
-#include <stdlib.h>
-#include <termios.h>
-#include <unistd.h>
-#include "funciones.h"
-
-char* capturar_contrasena() {
+char *capturar_contrasena()
+{
     struct termios viejo, nuevo;
     char *password = NULL;
     int i = 0;
@@ -164,23 +36,29 @@ char* capturar_contrasena() {
 
     printf("Introduce tu clave: ");
 
-    while (1) {
+    while (1)
+    {
         ch = getchar();
 
-        if (ch == '\n' || ch == '\r') { // Enter
+        if (ch == '\n' || ch == '\r')
+        { // Enter
             break;
-        } 
-        else if (ch == 127 || ch == 8) { // Backspace (Borrar)
-            if (i > 0) {
+        }
+        else if (ch == 127 || ch == 8)
+        { // Backspace (Borrar)
+            if (i > 0)
+            {
                 i--;
                 printf("\b \b"); // Mueve el cursor atrás, imprime espacio, vuelve atrás
                 password = (char *)realloc(password, (i + 1) * sizeof(char));
             }
-        } 
-        else {
+        }
+        else
+        {
             // Reservamos espacio para la nueva letra + el hueco del '\0'
             char *temp = (char *)realloc(password, (i + 2) * sizeof(char));
-            if (temp == NULL) {
+            if (temp == NULL)
+            {
                 free(password);
                 return NULL;
             }
@@ -190,7 +68,8 @@ char* capturar_contrasena() {
         }
     }
 
-    if (password != NULL) {
+    if (password != NULL)
+    {
         password[i] = '\0'; // Cerramos la cadena
     }
 
@@ -199,4 +78,107 @@ char* capturar_contrasena() {
     printf("\n");
 
     return password; // ¡Recuerda hacer free() de esto en el main!
+}
+
+int dni_es_valido(const char *dni)
+{
+    static const char *letras = "TRWAGMYFPDXBNJZSQVHLCKE";
+    if (!dni || strlen(dni) != 9)
+    {
+        printf("[ERROR] DNI invalido. Formato esperado: 12345678Z.\n");
+        return 0;
+    }
+
+    int numero = 0;
+    for (int i = 0; i < 8; i++)
+    {
+        if (!isdigit((unsigned char)dni[i]))
+        {
+            printf("[ERROR] DNI invalido. Los primeros 8 caracteres deben ser numeros.\n");
+            return 0;
+        }
+
+        unsigned char novenoCaracter = (unsigned char)dni[8];
+        if (!isalpha(novenoCaracter))
+        {
+            printf("[ERROR] DNI invalido. El noveno caracter debe ser una letra.\n");
+            return 0; // Falla la validación
+        }
+    }
+
+    return 1;
+}
+
+int fecha_es_valida(const char *fecha)
+{
+    if (!fecha || strlen(fecha) != 10)
+    {
+        printf("[ERROR] Formato de fecha invalido. Tiene que ser YYYY-MM-DD.\n");
+        return 0;
+    }
+    if (fecha[4] != '-' || fecha[7] != '-')
+    {
+        printf("[ERROR] Formato de fecha invalido. Tiene que ser YYYY-MM-DD.\n");
+        return 0;
+    }
+
+    for (int i = 0; i < 10; i++)
+    {
+        if (i == 4 || i == 7)
+            continue;
+        if (!isdigit((unsigned char)fecha[i]))
+        {
+            printf("[ERROR] Formato de fecha invalido. Tiene que ser YYYY-MM-DD.\n");
+            return 0;
+        }
+    }
+
+    int anio = 0, mes = 0, dia = 0;
+    if (sscanf(fecha, "%4d-%2d-%2d", &anio, &mes, &dia) != 3)
+    {
+        printf("[ERROR] Formato de fecha invalido. Tiene que ser YYYY-MM-DD.\n");
+        return 0;
+    }
+    if (mes < 1 || mes > 12 || dia < 1)
+    {
+        printf("[ERROR] Fecha con valores fuera de rango.\n");
+        return 0;
+    }
+
+    int dias_mes[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    int bisiesto = ((anio % 4 == 0 && anio % 100 != 0) || (anio % 400 == 0));
+    if (bisiesto)
+        dias_mes[1] = 29;
+
+    if (dia > dias_mes[mes - 1])
+    {
+        printf("[ERROR] El dia %d no existe en el mes %d.\n", dia, mes);
+        return 0;
+    }
+
+    return 1;
+}
+
+int fecha_es_hoy_o_posterior(const char *fecha)
+{
+    int anio = 0, mes = 0, dia = 0;
+    if (sscanf(fecha, "%4d-%2d-%2d", &anio, &mes, &dia) != 3)
+    {
+        printf("[ERROR] Formato de fecha invalido. Tiene que ser YYYY-MM-DD.\n");
+        return 0;
+    }
+
+    time_t t = time(NULL);
+    struct tm hoy = *localtime(&t);
+
+    if (anio < (hoy.tm_year + 1900) ||
+        (anio == (hoy.tm_year + 1900) && mes < (hoy.tm_mon + 1)) ||
+        (anio == (hoy.tm_year + 1900) && mes == (hoy.tm_mon + 1) && dia < hoy.tm_mday))
+    {
+        printf("[ERROR] La fecha no puede ser anterior a hoy (%04d-%02d-%02d).\n",
+               hoy.tm_year + 1900, hoy.tm_mon + 1, hoy.tm_mday);
+        return 0;
+    }
+
+    return 1;
 }
