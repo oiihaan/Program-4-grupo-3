@@ -182,3 +182,10 @@ int fecha_es_hoy_o_posterior(const char *fecha)
 
     return 1;
 }
+int comprobar_contrasena(const char *password) {
+    if (!password || password == NULL || strlen(password) == 0) {
+        printf("[ERROR] La contraseña no puede estar vacia.\n");
+        return 0;
+    }
+    return 1;
+}

@@ -28,12 +28,11 @@ int auth_login() {
         printf("\nUsuario: ");
         scanf("%63s", usuario);
         limpiarBuffer();
+    
+        do{
         password = capturar_contrasena();
-     if (password == NULL) {
-            printf("[ERROR] Error de memoria.\n");
-            
-            return 0;
-        }
+        } while (!comprobar_contrasena(password));
+
 
         char sql[256];
         snprintf(sql, sizeof(sql),
