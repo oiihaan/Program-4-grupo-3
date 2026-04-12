@@ -91,3 +91,4 @@ Program-4-grupo-3/
 - La API del tiempo utiliza [Open-Meteo](https://open-meteo.com/) — servicio gratuito sin necesidad de registro. Requiere conexión a internet. Si el servidor está caído, el sistema lo notificará con un mensaje de error.
 - La base de datos y el log se generan automáticamente en el primer arranque, no es necesario crearlos manualmente.
 - El sistema registra en `log.txt` cada acción realizada, incluyendo inicios de sesión, modificaciones y errores de autenticación.
+- En cualquier momento se puede introducir el cero (0) para volver atras
