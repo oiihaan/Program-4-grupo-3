@@ -14,9 +14,9 @@ void submenuLicencias()
     do
     {
         printf("\n--- GESTION DE LICENCIAS ---\n");
-        printf("1. Registrar expediente\n");
-        printf("2. Gestionar expediente (estado/eliminar)\n");
-        printf("3. Consultar Expedientes\n");
+        printf("1. Hacer solicitud de un expediente\n");
+        printf("2. Gestionar expedientes (Aceptar/Denegar)\n");
+        printf("3. Consultar licencias\n");
         printf("0. Volver al menu principal\n");
         printf("Seleccion: ");
 
@@ -33,6 +33,7 @@ void submenuLicencias()
             break;
         case 2:
             licencia_gestionar();
+            printf("Debug");
             break;
         case 3:
             submenuConsultaLicencias();
@@ -52,7 +53,7 @@ void submenuConsultaLicencias()
     do
     {
         printf("\n--- CONSULTA DE EXPEDIENTES ---\n");
-        printf("1. Ver licencias\n");
+        printf("1. Ver el historico de expedientes\n");
         printf("2. Tipos de licencia\n");
         printf("0. Volver\n");
         printf("Seleccion: ");
@@ -96,6 +97,25 @@ static int callback_listar_licencias(void *data, int cols, char **valores, char 
            id, tipo, dni, estado, f_solic, f_expir);
     return 0;
 }
+static int callback_listar_licencias_enRevision(void *data, int cols, char **valores, char **nombres)
+{
+int *contador = (int *)data;
+
+    // Extraemos los valores con seguridad (si el valor es NULL en la DB, ponemos "N/A")
+    const char *id       = valores[0] ? valores[0] : "N/A";
+    const char *tipo     = valores[1] ? valores[1] : "N/A";
+    const char *dni      = valores[2] ? valores[2] : "N/A";
+    const char *estado   = valores[3] ? valores[3] : "N/A";
+    const char *f_solic  = valores[4] ? valores[4] : "N/A";
+    const char *f_expir  = valores[5] ? valores[5] : "N/A";
+
+    (*contador)++;
+
+    printf(" [%s] %-15s | DNI: %-10s | %-12s | Sol: %-10s | Exp: %-10s\n",
+           id, tipo, dni, estado, f_solic, f_expir);
+
+    return 0;
+}
 
 static int callback_listar_tipos(void *data, int cols, char **valores, char **nombres)
 {
@@ -119,10 +139,40 @@ static int callback_existe(void *data, int cols, char **valores, char **nombres)
         *existe = 1;
     return 0;
 }
+static int callback_ver_tipos(void *data, int num_columnas, char **datos, char **nombres)
+{
+    int *contador = (int *)data;
+
+    // Variables con nombres simples
+    const char *id     = datos[0] ? datos[0] : "0";
+    const char *nombre = datos[1] ? datos[1] : "Sin nombre";
+    const char *desc   = datos[2] ? datos[2] : "Sin descripcion";
+    const char *req    = datos[3] ? datos[3] : "Sin requisitos";
+    // Si el valor es '1' ponemos SÍ, si no, ponemos NO
+    const char *activo = (datos[4] && strcmp(datos[4], "1") == 0) ? "SI" : "NO";
+
+    (*contador)++;
+
+    // Print con sentido y ordenado
+    printf("\n [%s] %s (Activa: %s)\n", id, nombre, activo);
+    printf("      Descripcion: %s\n", desc);
+    printf("      Requisitos:  %s\n", req);
+    printf(" --------------------------------------------------");
+
+    return 0;
+}
 
 static void fecha_hoy_iso(char *dest, size_t n)
 {
     time_t ahora = time(NULL);
+    struct tm *t = localtime(&ahora);
+    strftime(dest, n, "%Y-%m-%d", t);
+}
+
+static void fecha_cad_iso(char *dest, size_t n)
+{
+    time_t ahora = time(NULL);
+    ahora += 157766400;
     struct tm *t = localtime(&ahora);
     strftime(dest, n, "%Y-%m-%d", t);
 }
@@ -298,6 +348,7 @@ void licencia_registrar()
     int id_tipo;
     char dni[32];
     char fecha_expiracion[32];
+    fecha_cad_iso(fecha_expiracion,sizeof(fecha_expiracion));
 
     printf("\nID del tipo de licencia: ");
     if (scanf("%d", &id_tipo) != 1) { limpiarBuffer(); return; }
@@ -325,11 +376,7 @@ void licencia_registrar()
         limpiarBuffer();
     } while (!dni_es_valido(dni));
 
-    do {
-        printf("Fecha de expiracion (YYYY-MM-DD): ");
-        scanf(" %31[^\n]", fecha_expiracion);
-        limpiarBuffer();
-    } while (!fecha_es_valida(fecha_expiracion) || !fecha_es_hoy_o_posterior(fecha_expiracion));
+    
 
     if (licencia_activa_duplicada(dni, id_tipo))
     {
@@ -368,50 +415,67 @@ void licencia_gestionar()
     printf("\n--- GESTIONAR LICENCIA ---\n");
 
     int total = 0;
-    sqlite3_exec(db, "SELECT l.id_licencia, t.nombre, l.dni_ciudadano, l.estado, "
-                     "l.fecha_solicitud, l.fecha_expiracion FROM Licencia l "
-                     "JOIN TipoLicencia t ON l.id_tipo = t.id_tipo;", callback_listar_licencias, &total, NULL);
+    const char *sql = "SELECT l.id_licencia, t.nombre, l.dni_ciudadano, l.estado, "
+                  "l.fecha_solicitud, l.fecha_expiracion FROM Licencia l "
+                  "JOIN TipoLicencia t ON l.id_tipo = t.id_tipo " // ESPACIO AQUÍ
+                  "WHERE l.estado LIKE 'En revision%';";         // ESPACIO AQUÍ
 
-    if (total == 0) return;
+    sqlite3_exec(db, sql, callback_listar_licencias_enRevision, &total, NULL);
+
+    if (total == 0){
+        printf("\n[!] No se encontraron licencias pendientes de revision.\n");
+        return;
+    } 
 
     int id;
     printf("\nID de la licencia: ");
     if (scanf("%d", &id) != 1) { limpiarBuffer(); return; }
     limpiarBuffer();
 
+// Comprobacion previa de si esta en Revision para prevenir pantallas erroneas
+    char estado_actual[32] = {0};
+    sqlite3_stmt *stmt_est;
+    const char *sql_est = "SELECT estado FROM Licencia WHERE id_licencia=?;";
+    
+    if (sqlite3_prepare_v2(db, sql_est, -1, &stmt_est, NULL) == SQLITE_OK) {
+        sqlite3_bind_int(stmt_est, 1, id);
+        if (sqlite3_step(stmt_est) == SQLITE_ROW) {
+            const unsigned char *txt = sqlite3_column_text(stmt_est, 0);
+            if (txt) strcpy(estado_actual, (char*)txt);
+        }
+        sqlite3_finalize(stmt_est);
+    }
+
+    
+    if (strcmp(estado_actual, "En revision") != 0) {
+        printf("[ERROR] Acceso denegado. Solo se puedes gestionar los expedientes 'En revision'.\n");
+        return;
+    }
+
+    // Como lo que estaba antes pero modificado para que funcione con la alteracion
     int accion;
-    printf("\n1. Cambiar estado\n2. Eliminar\n0. Cancelar\nSeleccion: ");
+    printf("\n1. Aceptar/Rechazar solicitud\n2. Eliminar solicitud\n0. Cancelar\nSeleccion: ");
     if (scanf("%d", &accion) != 1) { limpiarBuffer(); return; }
     limpiarBuffer();
 
     if (accion == 1)
     {
-        char estado_actual[32] = {0};
-        sqlite3_stmt *stmt_est;
-        const char *sql_est = "SELECT estado FROM Licencia WHERE id_licencia=?;";
-        if (sqlite3_prepare_v2(db, sql_est, -1, &stmt_est, NULL) == SQLITE_OK) {
-            sqlite3_bind_int(stmt_est, 1, id);
-            if (sqlite3_step(stmt_est) == SQLITE_ROW) {
-                const unsigned char *txt = sqlite3_column_text(stmt_est, 0);
-                if (txt) strcpy(estado_actual, (char*)txt);
-            }
-            sqlite3_finalize(stmt_est);
-        }
-
-        if (estado_actual[0] == '\0') { printf("[ERROR] ID no encontrado.\n"); return; }
-
         const char *nuevo_estado = NULL;
-        int opcion_estado;
+        int opcion_estado = 0;
 
-        if (strcmp(estado_actual, "En revision") == 0) {
+        do {
             printf("\n1. Aprobada\n2. Denegada\nSeleccion: ");
-            scanf("%d", &opcion_estado); limpiarBuffer();
-            nuevo_estado = (opcion_estado == 1) ? "Aprobada" : (opcion_estado == 2) ? "Denegada" : NULL;
-        } else if (strcmp(estado_actual, "Aprobada") == 0) {
-            printf("\n1. Caducada\nSeleccion: ");
-            scanf("%d", &opcion_estado); limpiarBuffer();
-            if (opcion_estado == 1) nuevo_estado = "Caducada";
-        }
+            if (scanf("%d", &opcion_estado) != 1) {
+                limpiarBuffer();
+                continue;
+            }
+            limpiarBuffer();
+
+            if (opcion_estado == 1) nuevo_estado = "Aprobada";
+            else if (opcion_estado == 2) nuevo_estado = "Denegada";
+            else printf("[ERROR] Opcion no valida.\n");
+
+        } while (opcion_estado != 1 && opcion_estado != 2);
 
         if (nuevo_estado) {
             sqlite3_stmt *stmt_upd;
@@ -421,7 +485,6 @@ void licencia_gestionar()
                 sqlite3_bind_int(stmt_upd, 2, id);
                 if (sqlite3_step(stmt_upd) == SQLITE_DONE) {
                     printf("[OK] Estado actualizado a %s.\n", nuevo_estado);
-                    log_escribir("Estado de licencia actualizado.");
                 }
                 sqlite3_finalize(stmt_upd);
             }
@@ -453,7 +516,30 @@ void tipo_licencia_gestionar()
         if (scanf("%d", &opcion) != 1) { limpiarBuffer(); continue; }
         limpiarBuffer();
 
-        if (opcion == 2)
+        if (opcion ==1 )
+        {
+            int total = 0;
+            char *error_msg = NULL;
+            
+            // Añadimos 'activo' al SELECT
+            const char *sql = "SELECT id_tipo, nombre, descripcion, requisitos, activo FROM TipoLicencia;";
+
+            printf("\n--- CATALOGO DE LICENCIAS DISPONIBLES ---\n");
+            printf("--------------------------------------------------");
+
+            int resultado = sqlite3_exec(db, sql, callback_ver_tipos, &total, &error_msg);
+
+            if (resultado != SQLITE_OK) {
+                printf("\n[ERROR] No se pudo leer el catalogo: %s\n", error_msg);
+                sqlite3_free(error_msg);
+            } else if (total == 0) {
+                printf("\n[!] El catalogo esta vacio actualmente.\n");
+            } else {
+                printf("\nTotal de tipos de licencia: %d\n", total);
+            }
+        }
+        
+        else if (opcion == 2)
         {
             char nombre[128], descripcion[256], requisitos[256];
             printf("Nombre: "); scanf(" %127[^\n]", nombre); limpiarBuffer();

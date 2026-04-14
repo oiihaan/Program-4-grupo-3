@@ -256,7 +256,7 @@ void db_insertar_datos_prueba(){
     );
     db_ejecutar(
         "INSERT OR IGNORE INTO Licencia (id_tipo, dni_ciudadano, estado, fecha_solicitud, fecha_expiracion) "
-        "VALUES (3, '11223344B', 'Denegada', '2025-02-10', NULL);"
+        "VALUES (3, '11223344B', 'Denegada', '2025-02-10', 2030-02-10);"
     );
     db_ejecutar(
         "INSERT OR IGNORE INTO Licencia (id_tipo, dni_ciudadano, estado, fecha_solicitud, fecha_expiracion) "
@@ -267,12 +267,6 @@ void db_insertar_datos_prueba(){
         "VALUES (1, '99887766D', 'Aprobada', '2024-08-05', '2026-08-05');"
     );
     printf("[OK] Licencias de prueba creadas.\n");
-
-
-    db_ejecutar(
-    "INSERT OR IGNORE INTO Publicacion (tipo, categoria, titulo, enlace, dni_admin, fecha_publicacion, estado) "
-    "VALUES ('Noticia', 'Deportes', 'Pistas de pádel municipales saturadas abril 2026', 'https://www.donostia.eus/kirola', '12345678B', '2026-04-14', 'ACTIVA');"
-    );
 
     printf("*** Datos de prueba insertados correctamente ***\n\n");
 

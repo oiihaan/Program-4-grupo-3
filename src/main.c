@@ -72,7 +72,7 @@ int main() {
         printf("\n*** MENU PRINCIPAL DEL ADMINISTRADOR ***\n");
         printf("1. Gestion de espacios\n");
         printf("2. Gestion de noticias\n");
-        printf("3. Gestion de licencias\n");
+        printf("3. Gestion de licencias y expedientes\n");
         printf("4. Configuracion\n");
         printf("0. Salir\n");
         printf("Seleccion: ");
