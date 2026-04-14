@@ -189,3 +189,51 @@ int comprobar_contrasena(const char *password) {
     }
     return 1;
 }
+
+int obtener_entero_validado(int minimo, int maximo)
+{
+    int valor;
+    int valido = 0;
+
+    while (!valido) {
+        if (scanf("%d", &valor) != 1) {
+            limpiarBuffer();
+            printf("[ERROR] Entrada invalida. Por favor, introduce un numero entero.\n");
+            continue;
+        }
+
+        if (valor < minimo || valor > maximo) {
+            printf("[ERROR] El valor debe estar entre %d y %d.\n", minimo, maximo);
+            continue;
+        }
+
+        valido = 1;
+    }
+
+    limpiarBuffer();
+    return valor;
+}
+
+float obtener_float_validado(float minimo, float maximo)
+{
+    float valor;
+    int valido = 0;
+
+    while (!valido) {
+        if (scanf("%f", &valor) != 1) {
+            limpiarBuffer();
+            printf("[ERROR] Entrada invalida. Por favor, introduce un numero decimal.\n");
+            continue;
+        }
+
+        if (valor < minimo || valor > maximo) {
+            printf("[ERROR] El valor debe estar entre %.2f y %.2f.\n", minimo, maximo);
+            continue;
+        }
+
+        valido = 1;
+    }
+
+    limpiarBuffer();
+    return valor;
+}

@@ -126,37 +126,20 @@ void espacios_anadir()
     {
         printf("Nombre: ");
         scanf(" %127[^\n]", nombre);
+        limpiarBuffer();
 
         if (strlen(nombre) == 0)
         {
-            printf("Porfavor, introduzca un nombre");
+            printf("[ERROR] Por favor, introduzca un nombre.\n");
         }
 
     } while (strlen(nombre) == 0);
 
-    do
-    {
-        printf("Capacidad (personas): ");
-        scanf("%d", &capacidad);
+    printf("Capacidad (personas): ");
+    capacidad = obtener_entero_validado(1, 10000);
 
-        if (capacidad < 1)
-        {
-            printf("Valor invalido, porfavor intentelo de nuevo");
-        }
-
-    } while (capacidad < 1);
-
-    do
-    {
-        printf("Precio por hora (€): ");
-        scanf("%f", &precio);
-
-        if (precio < 0)
-        {
-            printf("El precio no puede ser negativo, porfavor intentelo de nuevo");
-        }
-
-    } while (precio < 0);
+    printf("Precio por hora (€): ");
+    precio = obtener_float_validado(0.0f, 99999.99f);
 
     sqlite3_stmt *stmt;
     const char *sql = "INSERT INTO Espacio (nombre, capacidad, precio_hora, activo) VALUES (?, ?, ?, 1);";
@@ -168,7 +151,7 @@ void espacios_anadir()
 
         if (sqlite3_step(stmt) == SQLITE_DONE) {
             printf("[OK] Espacio '%s' añadido correctamente.\n", nombre);
-            
+
             char msg[200];
             snprintf(msg, sizeof(msg), "Ha agregado a la BD el espacio '%s'", nombre);
             log_escribir(msg);
