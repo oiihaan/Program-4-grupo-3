@@ -47,10 +47,7 @@ make clean
 
 ## Primer inicio
 
-Al ejecutar por primera vez, el sistema creará automáticamente:
-- La base de datos (`ayuntamiento.db`) con todas las tablas necesarias
-- Un usuario administrador de prueba
-- Un fichero de log (`log.txt`) donde se registran todas las acciones
+Al ejecutar por primera vez, el sistema detectará que no hay administradores y te guiará automáticamente para crear el administrador maestro. Se generará la base de datos (ayuntamiento.db), el fichero de log y la estructura de seguridad SHA-256.
 
 **Credenciales por defecto:**
 
@@ -60,6 +57,18 @@ Al ejecutar por primera vez, el sistema creará automáticamente:
 | Contraseña | 1234 |
 
 ---
+
+## Seguridad y Criptografía
+
+El sistema implementa un esquema de seguridad robusto para la gestión de identidades:
+
+Hashing de contraseñas: Las contraseñas nunca se almacenan en texto plano. Se utiliza el algoritmo SHA-256 para generar un resumen irreversible.
+
+Salting dinámico (Salt): Para evitar ataques de diccionario, se utiliza la columna fecha_creacion de cada usuario como "sal". Esto garantiza que, aunque dos administradores usen la misma contraseña, sus hashes en la base de datos sean completamente diferentes.
+
+Implementación: La lógica criptográfica utiliza la librería TinyCrypt, desarrollada por Intel Corporation.
+
+Referencia técnica: El código de hashing está basado en la implementación oficial de [TinyCrypt (Intel)](https://github.com/intel/tinycrypt/tree/master).
 
 ## Funcionalidades
 
