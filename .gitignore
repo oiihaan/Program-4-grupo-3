@@ -7,7 +7,7 @@
 
 
 # --- Bases de Datos y Datos locales 
-#*.db
+*.db
 *.sqlite
 # archivos temporales sqlite
 *.db-journal

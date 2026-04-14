@@ -8,6 +8,7 @@ int db_abrir(const char *ruta) {
         printf("[ERROR] No se pudo abrir la BD: %s\n", sqlite3_errmsg(db));
         return 0;
     }
+    db_ejecutar("PRAGMA foreign_keys = ON;");
     printf("[OK] Base de datos abierta: %s\n", ruta);
     return 1;
 }
@@ -65,6 +66,7 @@ void db_crear_tablas() {
         "num_personas INTEGER,"
         "cancelada INTEGER DEFAULT 0,"
         "FOREIGN KEY (id_espacio) REFERENCES Espacio(id_espacio)"
+        "ON DELETE CASCADE"
         ");"
     );
 
@@ -101,6 +103,7 @@ void db_crear_tablas() {
         "fecha_solicitud TEXT,"
         "fecha_expiracion TEXT,"
         "FOREIGN KEY (id_tipo) REFERENCES TipoLicencia(id_tipo)"
+        "ON DELETE CASCADE"
         ");"
     );
 
@@ -113,13 +116,165 @@ void db_crear_tablas() {
     //     "INSERT OR IGNORE INTO Admin (dni, nombre_usuario, password, activo) "
     //     "VALUES ('12345678A', 'admin', '1234', 1);"
     // );
+    printf("[OK] Tablas creadas/verificadas.\n");
+}
+
+void db_insertar_datos_prueba(){
     db_ejecutar(
-    "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
-    "VALUES ('Sala A', 20, 15.0, 1);"
+        "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
+        "VALUES ('Sala de Conferencias', 50, 25.0, 1);"
     );
     db_ejecutar(
         "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
-        "VALUES ('Auditorio', 200, 50.0, 1);"
+        "VALUES ('Piscina', 20, 15.0, 1);"
     );
-    printf("[OK] Tablas creadas/verificadas.\n");
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
+        "VALUES ('Pista de padel A', 6, 10.0, 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
+        "VALUES ('Pista de padel B', 6, 10.0, 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
+        "VALUES ('Pista de tenis', 6, 15.0, 0);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
+        "VALUES ('Pista de padel C', 6, 10.0, 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
+        "VALUES ('Pista de tenis B', 6, 15.0, 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
+        "VALUES ('Campo fútbol 7', 14, 35.0, 1);"
+    );
+    printf("[OK] Espacios de prueba creados.\n");
+
+
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (2, '22334455P', '2026-04-18', '16:00', '17:30', 8, 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (1, '87654321Z', '2026-04-19', '09:00', '11:00', 25, 0);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (2, '11223344B', '2026-04-20', '11:00', '12:30', 12, 0);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (3, '55667788C', '2026-04-21', '18:30', '19:30', 4, 0);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (4, '99887766D', '2026-04-22', '20:00', '21:00', 6, 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (2, '77665544I', '2026-04-23', '14:00', '15:30', 18, 0);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (5, '44556677E', '2026-04-24', '17:00', '18:00', 4, 0);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (3, '88776655J', '2026-04-25', '18:00', '19:00', 6, 0);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (4, '99887766K', '2026-04-26', '21:00', '22:00', 4, 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (1, '11223344L', '2026-04-27', '10:00', '12:00', 40, 0);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (6, '33445566F', '2026-04-28', '19:00', '20:00', 5, 0);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (8, '55667788M', '2026-05-01', '18:00', '20:00', 14, 0);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (7, '22334455G', '2026-04-30', '16:30', '17:30', 4, 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (6, '44556677N', '2026-05-03', '17:30', '18:30', 6, 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (7, '33445566O', '2026-05-04', '16:00', '17:00', 5, 0);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
+        "VALUES (8, '66778899H', '2026-05-02', '15:00', '17:00', 12, 0);"
+    );
+
+    printf("[OK] Reservas de prueba creadas.\n");
+
+
+    db_ejecutar(
+        "INSERT OR IGNORE INTO TipoLicencia (nombre, descripcion, requisitos, activo) "
+        "VALUES ('Licencia de Construcción', 'Para obras menores y reformas', 'Proyecto técnico, seguro', 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO TipoLicencia (nombre, descripcion, requisitos, activo) "
+        "VALUES ('Licencia de Actividad', 'Para negocios y establecimientos', 'Documentación sanitaria, comprobante de domicilio', 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO TipoLicencia (nombre, descripcion, requisitos, activo) "
+        "VALUES ('Licencia de Terraza', 'Para establecimientos con espacio exterior', 'Plano de ocupación, autorización propietario', 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO TipoLicencia (nombre, descripcion, requisitos, activo) "
+        "VALUES ('Licencia de Publicidad', 'Para carteles y anuncios', 'Especificaciones técnicas, seguro de responsabilidad', 1);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO TipoLicencia (nombre, descripcion, requisitos, activo) "
+        "VALUES ('Licencia de Armas', 'Para tener armas', 'Ser mayor de edad, examen psicotecnico', 1);"
+    );
+    printf("[OK] Tipos de licencia de prueba creados.\n");
+
+
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Licencia (id_tipo, dni_ciudadano, estado, fecha_solicitud, fecha_expiracion) "
+        "VALUES (1, '12345678B', 'En revision', '2025-04-01', '2029-04-01');"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Licencia (id_tipo, dni_ciudadano, estado, fecha_solicitud, fecha_expiracion) "
+        "VALUES (2, '87654321Z', 'Aprobada', '2024-12-15', '2026-12-15');"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Licencia (id_tipo, dni_ciudadano, estado, fecha_solicitud, fecha_expiracion) "
+        "VALUES (3, '11223344B', 'Denegada', '2025-02-10', NULL);"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Licencia (id_tipo, dni_ciudadano, estado, fecha_solicitud, fecha_expiracion) "
+        "VALUES (4, '55667788C', 'En revision', '2025-03-20', '2028-03-20');"
+    );
+    db_ejecutar(
+        "INSERT OR IGNORE INTO Licencia (id_tipo, dni_ciudadano, estado, fecha_solicitud, fecha_expiracion) "
+        "VALUES (1, '99887766D', 'Aprobada', '2024-08-05', '2026-08-05');"
+    );
+    printf("[OK] Licencias de prueba creadas.\n");
+
+
+    db_ejecutar(
+    "INSERT OR IGNORE INTO Publicacion (tipo, categoria, titulo, enlace, dni_admin, fecha_publicacion, estado) "
+    "VALUES ('Noticia', 'Deportes', 'Pistas de pádel municipales saturadas abril 2026', 'https://www.donostia.eus/kirola', '12345678B', '2026-04-14', 'ACTIVA');"
+    );
+
+    printf("*** Datos de prueba insertados correctamente ***\n\n");
+
+
 }

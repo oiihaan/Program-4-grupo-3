@@ -31,7 +31,7 @@ int main() {
 
     // abrir base de datos
     if (!db_abrir(config.db_ruta)) return 1;
-
+    
     // tablas
     db_crear_tablas();
 
@@ -57,6 +57,7 @@ int main() {
     // NUEVO: Si no hay nadie, registrar uno
     if (total_admins == 0) {
         admin_registrar_nuevo();
+        db_insertar_datos_prueba();
     }
 
     // 4. Login

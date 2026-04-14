@@ -3,6 +3,7 @@
 #include "../include/log.h"
 #include "../include/config.h"
 #include "../include/funciones.h"
+#include "../include/espacios.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -296,7 +297,8 @@ void reservas_listar_todas() {
 /* READ - Listar reservas de un espacio específico */
 void reservas_listar_por_espacio() {
     int id_espacio;
-
+    
+    espacios_listar();
     printf("\n--- VER RESERVAS DE UN ESPACIO ---\n");
     printf("ID del espacio: ");
     scanf("%d", &id_espacio);

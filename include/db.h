@@ -11,5 +11,6 @@ int  db_abrir(const char *ruta);
 void db_cerrar();
 void db_crear_tablas();
 int  db_ejecutar(const char *sql);
+void db_insertar_datos_prueba();
 
 #endif
