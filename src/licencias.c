@@ -33,7 +33,6 @@ void submenuLicencias()
             break;
         case 2:
             licencia_gestionar();
-            printf("Debug");
             break;
         case 3:
             submenuConsultaLicencias();
