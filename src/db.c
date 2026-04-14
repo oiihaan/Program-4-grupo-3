@@ -35,13 +35,14 @@ char* obtenerDni(char* nombre){
 
 void db_crear_tablas() {
     db_ejecutar(
-        "CREATE TABLE IF NOT EXISTS Admin ("
-        "dni TEXT PRIMARY KEY,"
-        "nombre_usuario TEXT NOT NULL,"
-        "password TEXT NOT NULL,"
-        "activo INTEGER DEFAULT 1"
-        ");"
-    );
+    "CREATE TABLE IF NOT EXISTS Admin ("
+    "dni TEXT PRIMARY KEY,"
+    "nombre_usuario TEXT NOT NULL,"
+    "password TEXT NOT NULL,"
+    "activo INTEGER DEFAULT 1,"
+    "fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP"
+    ");"
+);
 
     db_ejecutar(
         "CREATE TABLE IF NOT EXISTS Espacio ("
@@ -103,11 +104,15 @@ void db_crear_tablas() {
         ");"
     );
 
-    // FUNCION AUXILIAR PARA HACER PRUEBAS CON LA BD
-    db_ejecutar(
-        "INSERT OR IGNORE INTO Admin (dni, nombre_usuario, password, activo) "
-        "VALUES ('12345678A', 'admin', '1234', 1);"
-    );
+    // QUITO ESTO PARA QUE FUNCIONE LA NUEVA FUNCION DE INICIO DE SESION,
+    // ahora el programa comprueba que haya algun admin en la base de datos y si no lo hay,
+    // entra en modo de "setup" para crear un admin con su clave hash.
+
+    // // FUNCION AUXILIAR PARA HACER PRUEBAS CON LA BD
+    // db_ejecutar(
+    //     "INSERT OR IGNORE INTO Admin (dni, nombre_usuario, password, activo) "
+    //     "VALUES ('12345678A', 'admin', '1234', 1);"
+    // );
     db_ejecutar(
     "INSERT OR IGNORE INTO Espacio (nombre, capacidad, precio_hora, activo) "
     "VALUES ('Sala A', 20, 15.0, 1);"

@@ -15,25 +15,49 @@
 #include <curl/curl.h>
 #include "../include/noticias.h"
 
-
+extern sqlite3 *db;
 
 
 
 int main() {
-    //Inicializa para que no pete la app basicamente (Prepara RAM)
+    // Inicializa para que no pete la app basicamente (Prepara RAM)
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
-    //Log de encendido del sistema
+    // Log de encendido del sistema
     log_escribir("El sistema se ha encendido correctamente");  
 
-    //cargar configuración
+    // cargar configuración
     if (!config_cargar("./server.conf")) return 1;
 
-    //abrir base de datos
+    // abrir base de datos
     if (!db_abrir(config.db_ruta)) return 1;
 
-    //tablas
+    // tablas
     db_crear_tablas();
+
+    // --- CORRECCIÓN: DECLARACIÓN DE VARIABLES ---
+    sqlite3_stmt *stmt;
+    int total_admins = 0;
+    const char *sql_check = "SELECT COUNT(*) FROM Admin;";
+    // --------------------------------------------
+
+    printf("[DEBUG] Comprobando usuarios en la BD...\n");
+
+    if (sqlite3_prepare_v2(db, sql_check, -1, &stmt, NULL) == SQLITE_OK) {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            total_admins = sqlite3_column_int(stmt, 0);
+        }
+        sqlite3_finalize(stmt);
+    } else {
+        printf("[ERROR SQL] %s\n", sqlite3_errmsg(db)); 
+    }
+
+    printf("[DEBUG] Total admins encontrados: %d\n", total_admins);
+
+    // NUEVO: Si no hay nadie, registrar uno
+    if (total_admins == 0) {
+        admin_registrar_nuevo();
+    }
 
     // 4. Login
     if (!auth_login()) {
@@ -41,7 +65,7 @@ int main() {
         return 1;
     }
 
-    // 5. Menú principal
+    // 5. Menú principal (Resto del código igual...)
     int opcion;
     do {
         printf("\n*** MENU PRINCIPAL DEL ADMINISTRADOR ***\n");
@@ -71,14 +95,8 @@ int main() {
         }
     } while (opcion != 0);
 
-
-    //Log de apago del sistema antes de apagar
     log_escribir("El sistema se ha apagado");
-
-    // Limpieza global antes de salir
     curl_global_cleanup();
-    printf("Degub");
-    // 6. Cerrar BD
     db_cerrar();
     return 0;
 }

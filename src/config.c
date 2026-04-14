@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sqlite3.h>
+#include "../include/db.h"   
+#include "../include/auth.h"
+
+extern sqlite3 *db;
 
 // Para que lea el fichero server.conf, y guardar sus valores en memoria para que todo el programa los pueda usar
 // Es como para leer los valores de un .env
@@ -29,9 +34,51 @@ void submenuConfiguracion()
 
         switch (opcion)
         {
-        case 1:
-            printf("\n[+] Modulo: Administracion de credenciales...\n");
+        case 1: {
+            sqlite3_stmt *stmt;
+            char dni_sel[32];
+            
+            printf("\n--- GESTION DE ADMINISTRADORES ---\n");
+            // Listamos los usuarios para saber a quién editar
+            const char *sql_list = "SELECT dni, nombre_usuario, activo FROM Admin;";
+            
+            if (sqlite3_prepare_v2(db, sql_list, -1, &stmt, NULL) == SQLITE_OK) {
+                printf("%-12s | %-15s | %-10s\n", "DNI", "USUARIO", "ESTADO");
+                printf("------------------------------------------\n");
+                while (sqlite3_step(stmt) == SQLITE_ROW) {
+                    printf("%-12s | %-15s | %-10s\n", 
+                           sqlite3_column_text(stmt, 0), 
+                           sqlite3_column_text(stmt, 1),
+                           sqlite3_column_int(stmt, 2) ? "ACTIVO" : "INACTIVO");
+                }
+                sqlite3_finalize(stmt);
+            }
+
+            printf("\nIntroduce DNI para editar (o '0' para volver): ");
+            scanf("%31s", dni_sel);
+            if (strcmp(dni_sel, "0") == 0) break;
+
+            printf("¿Que deseas hacer con el usuario %s?\n", dni_sel);
+            printf("1. Cambiar Contraseña\n");
+            printf("2. Alternar Estado (Activar/Desactivar)\n");
+            printf("Seleccion: ");
+            int subop;
+            scanf("%d", &subop);
+
+            if (subop == 1) {
+                auth_editar_password(dni_sel); // Esta función debe estar en auth.c
+            } else if (subop == 2) {
+                // Sentencia rápida para cambiar el estado
+                const char *sql_status = "UPDATE Admin SET activo = NOT activo WHERE dni = ?;";
+                if (sqlite3_prepare_v2(db, sql_status, -1, &stmt, NULL) == SQLITE_OK) {
+                    sqlite3_bind_text(stmt, 1, dni_sel, -1, SQLITE_STATIC);
+                    sqlite3_step(stmt);
+                    sqlite3_finalize(stmt);
+                    printf("[OK] Estado actualizado.\n");
+                }
+            }
             break;
+        }
         case 0:
             printf("\nVolviendo al menu principal...\n");
             break;
