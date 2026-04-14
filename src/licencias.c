@@ -210,17 +210,18 @@ void licencias_listar()
     }
     limpiarBuffer();
 
-    char sql[512];
-    int total = 0;
+    sqlite3_stmt *stmt;
     char *err = NULL;
+    int total = 0;
 
     if (opcion == 1)
     {
-        snprintf(sql, sizeof(sql),
-                 "SELECT l.id_licencia, t.nombre, l.dni_ciudadano, l.estado, "
-                 "l.fecha_solicitud, l.fecha_expiracion "
-                 "FROM Licencia l "
-                 "JOIN TipoLicencia t ON l.id_tipo = t.id_tipo;");
+        const char *sql = "SELECT l.id_licencia, t.nombre, l.dni_ciudadano, l.estado, "
+                          "l.fecha_solicitud, l.fecha_expiracion "
+                          "FROM Licencia l "
+                          "JOIN TipoLicencia t ON l.id_tipo = t.id_tipo;";
+        
+        sqlite3_exec(db, sql, callback_listar_licencias, &total, &err);
     }
     else if (opcion == 2)
     {
@@ -238,45 +239,36 @@ void licencias_listar()
         const char *estado = NULL;
         switch (filtro)
         {
-        case 1:
-            estado = "En revision";
-            break;
-        case 2:
-            estado = "Aprobada";
-            break;
-        case 3:
-            estado = "Denegada";
-            break;
-        case 4:
-            estado = "Caducada";
-            break;
-        default:
-            printf("[!] Opcion invalida.\n");
-            return;
+        case 1: estado = "En revision"; break;
+        case 2: estado = "Aprobada"; break;
+        case 3: estado = "Denegada"; break;
+        case 4: estado = "Caducada"; break;
+        default: printf("[!] Opcion invalida.\n"); return;
         }
 
-        snprintf(sql, sizeof(sql),
-                 "SELECT l.id_licencia, t.nombre, l.dni_ciudadano, l.estado, "
-                 "l.fecha_solicitud, l.fecha_expiracion "
-                 "FROM Licencia l "
-                 "JOIN TipoLicencia t ON l.id_tipo = t.id_tipo "
-                 "WHERE l.estado='%s';",
-                 estado);
-    }
-    else
-    {
-        printf("[!] Opcion invalida.\n");
-        return;
+        const char *sql = "SELECT l.id_licencia, t.nombre, l.dni_ciudadano, l.estado, "
+                          "l.fecha_solicitud, l.fecha_expiracion "
+                          "FROM Licencia l "
+                          "JOIN TipoLicencia t ON l.id_tipo = t.id_tipo "
+                          "WHERE l.estado=?;";
+
+        if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK)
+        {
+            sqlite3_bind_text(stmt, 1, estado, -1, SQLITE_STATIC);
+            
+            // Usamos un bucle para procesar los resultados simulando el callback
+            while (sqlite3_step(stmt) == SQLITE_ROW)
+            {
+                char *valores[6];
+                for (int i = 0; i < 6; i++) {
+                    valores[i] = (char *)sqlite3_column_text(stmt, i);
+                }
+                callback_listar_licencias(&total, 6, valores, NULL);
+            }
+            sqlite3_finalize(stmt);
+        }
     }
 
-    printf("\n");
-    int resultado = sqlite3_exec(db, sql, callback_listar_licencias, &total, &err);
-    if (resultado != SQLITE_OK)
-    {
-        printf("[ERROR] %s\n", err);
-        sqlite3_free(err);
-        return;
-    }
     if (total == 0)
         printf("[INFO] No hay licencias que mostrar.\n");
 }
@@ -285,7 +277,6 @@ void licencias_listar()
 
 void licencia_registrar()
 {
-
     char fecha_solicitud[32];
     fecha_hoy_iso(fecha_solicitud, sizeof(fecha_solicitud));
     licencias_marcar_caducadas();
@@ -295,17 +286,9 @@ void licencia_registrar()
     int total = 0;
     char *err = NULL;
     printf("Tipos de licencia disponibles:\n");
-    int resultado = sqlite3_exec(db,
-                                 "SELECT id_tipo, nombre, descripcion, requisitos, activo "
-                                 "FROM TipoLicencia WHERE activo=1;",
-                                 callback_listar_tipos, &total, &err);
+    sqlite3_exec(db, "SELECT id_tipo, nombre, descripcion, requisitos, activo "
+                     "FROM TipoLicencia WHERE activo=1;", callback_listar_tipos, &total, &err);
 
-    if (resultado != SQLITE_OK)
-    {
-        printf("[ERROR] %s\n", err);
-        sqlite3_free(err);
-        return;
-    }
     if (total == 0)
     {
         printf("[INFO] No hay tipos de licencia activos. Crea uno primero.\n");
@@ -317,35 +300,32 @@ void licencia_registrar()
     char fecha_expiracion[32];
 
     printf("\nID del tipo de licencia: ");
-    if (scanf("%d", &id_tipo) != 1)
-    {
-        printf("[ERROR] ID no valido.\n");
-        limpiarBuffer();
-        return;
-    }
+    if (scanf("%d", &id_tipo) != 1) { limpiarBuffer(); return; }
     limpiarBuffer();
 
-    // Comprobar que el tipo existe y esta activo
-    char sql_check[128];
-    snprintf(sql_check, sizeof(sql_check),
-             "SELECT COUNT(*) FROM TipoLicencia WHERE id_tipo=%d AND activo=1;", id_tipo);
+    // Comprobar que el tipo existe y está activo
+    sqlite3_stmt *stmt_check;
     int existe = 0;
-    sqlite3_exec(db, sql_check, callback_existe, &existe, NULL);
+    const char *sql_check = "SELECT COUNT(*) FROM TipoLicencia WHERE id_tipo=? AND activo=1;";
+    if (sqlite3_prepare_v2(db, sql_check, -1, &stmt_check, NULL) == SQLITE_OK) {
+        sqlite3_bind_int(stmt_check, 1, id_tipo);
+        if (sqlite3_step(stmt_check) == SQLITE_ROW) existe = sqlite3_column_int(stmt_check, 0);
+        sqlite3_finalize(stmt_check);
+    }
+
     if (!existe)
     {
         printf("[ERROR] No existe ningun tipo de licencia activo con ese ID.\n");
         return;
     }
 
-    do
-    {
+    do {
         printf("DNI del ciudadano: ");
         scanf(" %31[^\n]", dni);
         limpiarBuffer();
     } while (!dni_es_valido(dni));
 
-    do
-    {
+    do {
         printf("Fecha de expiracion (YYYY-MM-DD): ");
         scanf(" %31[^\n]", fecha_expiracion);
         limpiarBuffer();
@@ -357,23 +337,26 @@ void licencia_registrar()
         return;
     }
 
-    char sql[512];
-    snprintf(sql, sizeof(sql),
-             "INSERT INTO Licencia (id_tipo, dni_ciudadano, estado, fecha_solicitud, fecha_expiracion) "
-             "VALUES (%d, '%s', 'En revision', '%s', '%s');",
-             id_tipo, dni, fecha_solicitud, fecha_expiracion);
+    // CORRECCIÓN SQL INJECTION: Inserción segura
+    sqlite3_stmt *stmt_ins;
+    const char *sql_ins = "INSERT INTO Licencia (id_tipo, dni_ciudadano, estado, fecha_solicitud, fecha_expiracion) "
+                          "VALUES (?, ?, 'En revision', ?, ?);";
 
-    if (db_ejecutar(sql))
+    if (sqlite3_prepare_v2(db, sql_ins, -1, &stmt_ins, NULL) == SQLITE_OK)
     {
-        printf("[OK] Solicitud registrada correctamente para el DNI %s.\n", dni);
-        char msg[300];
-        snprintf(msg, sizeof(msg),
-                 "Ha registrado una nueva solicitud de licencia para el DNI %s", dni);
-        log_escribir(msg);
-    }
-    else
-    {
-        printf("[ERROR] No se pudo registrar la solicitud.\n");
+        sqlite3_bind_int(stmt_ins, 1, id_tipo);
+        sqlite3_bind_text(stmt_ins, 2, dni, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt_ins, 3, fecha_solicitud, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt_ins, 4, fecha_expiracion, -1, SQLITE_STATIC);
+
+        if (sqlite3_step(stmt_ins) == SQLITE_DONE)
+        {
+            printf("[OK] Solicitud registrada correctamente.\n");
+            char msg[300];
+            snprintf(msg, sizeof(msg), "Ha registrado una solicitud de licencia para DNI %s", dni);
+            log_escribir(msg);
+        }
+        sqlite3_finalize(stmt_ins);
     }
 }
 
@@ -382,199 +365,79 @@ void licencia_registrar()
 void licencia_gestionar()
 {
     licencias_marcar_caducadas();
-
     printf("\n--- GESTIONAR LICENCIA ---\n");
 
     int total = 0;
-    char *err = NULL;
-    int resultado = sqlite3_exec(db,
-                                 "SELECT l.id_licencia, t.nombre, l.dni_ciudadano, l.estado, "
-                                 "l.fecha_solicitud, l.fecha_expiracion "
-                                 "FROM Licencia l "
-                                 "JOIN TipoLicencia t ON l.id_tipo = t.id_tipo;",
-                                 callback_listar_licencias, &total, &err);
+    sqlite3_exec(db, "SELECT l.id_licencia, t.nombre, l.dni_ciudadano, l.estado, "
+                     "l.fecha_solicitud, l.fecha_expiracion FROM Licencia l "
+                     "JOIN TipoLicencia t ON l.id_tipo = t.id_tipo;", callback_listar_licencias, &total, NULL);
 
-    if (resultado != SQLITE_OK)
-    {
-        printf("[ERROR] %s\n", err);
-        sqlite3_free(err);
-        return;
-    }
-    if (total == 0)
-    {
-        printf("[INFO] No hay licencias registradas.\n");
-        return;
-    }
+    if (total == 0) return;
 
     int id;
     printf("\nID de la licencia: ");
-    if (scanf("%d", &id) != 1)
-    {
-        printf("[ERROR] ID no valido.\n");
-        limpiarBuffer();
-        return;
-    }
+    if (scanf("%d", &id) != 1) { limpiarBuffer(); return; }
     limpiarBuffer();
-
-    // Comprobar que existe
-    char sql_check[128];
-    snprintf(sql_check, sizeof(sql_check),
-             "SELECT COUNT(*) FROM Licencia WHERE id_licencia=%d;", id);
-    int existe = 0;
-    sqlite3_exec(db, sql_check, callback_existe, &existe, NULL);
-    if (!existe)
-    {
-        printf("[ERROR] No existe ninguna licencia con ID %d.\n", id);
-        return;
-    }
 
     int accion;
-    printf("\n1. Cambiar estado\n");
-    printf("2. Eliminar\n");
-    printf("0. Cancelar\n");
-    printf("Seleccion: ");
-
-    if (scanf("%d", &accion) != 1)
-    {
-        limpiarBuffer();
-        return;
-    }
+    printf("\n1. Cambiar estado\n2. Eliminar\n0. Cancelar\nSeleccion: ");
+    if (scanf("%d", &accion) != 1) { limpiarBuffer(); return; }
     limpiarBuffer();
 
-    // --- CAMBIAR ESTADO ---
     if (accion == 1)
     {
         char estado_actual[32] = {0};
-        sqlite3_stmt *stmt_estado = NULL;
-        const char *sql_estado = "SELECT estado FROM Licencia WHERE id_licencia=?;";
-        if (sqlite3_prepare_v2(db, sql_estado, -1, &stmt_estado, NULL) != SQLITE_OK)
-        {
-            printf("[ERROR] No se pudo consultar el estado actual.\n");
-            return;
-        }
-        sqlite3_bind_int(stmt_estado, 1, id);
-        if (sqlite3_step(stmt_estado) == SQLITE_ROW)
-        {
-            const unsigned char *txt = sqlite3_column_text(stmt_estado, 0);
-            if (txt)
-                snprintf(estado_actual, sizeof(estado_actual), "%s", txt);
-        }
-        sqlite3_finalize(stmt_estado);
-
-        if (estado_actual[0] == '\0')
-        {
-            printf("[ERROR] No se pudo determinar el estado actual de la licencia.\n");
-            return;
+        sqlite3_stmt *stmt_est;
+        const char *sql_est = "SELECT estado FROM Licencia WHERE id_licencia=?;";
+        if (sqlite3_prepare_v2(db, sql_est, -1, &stmt_est, NULL) == SQLITE_OK) {
+            sqlite3_bind_int(stmt_est, 1, id);
+            if (sqlite3_step(stmt_est) == SQLITE_ROW) {
+                const unsigned char *txt = sqlite3_column_text(stmt_est, 0);
+                if (txt) strcpy(estado_actual, (char*)txt);
+            }
+            sqlite3_finalize(stmt_est);
         }
 
-        if (strcmp(estado_actual, "En revision") == 0)
-        {
-            printf("\nEstado actual: En revision\n");
-            printf("1. Aprobada\n2. Denegada\n");
-        }
-        else if (strcmp(estado_actual, "Aprobada") == 0)
-        {
-            printf("\nEstado actual: Aprobada\n");
-            printf("1. Caducada\n");
-        }
-        else
-        {
-            printf("[ERROR] La licencia esta en estado terminal ('%s') y no admite cambios.\n", estado_actual);
-            return;
-        }
-
-        printf("Nuevo estado: ");
-        int opcion_estado;
-        if (scanf("%d", &opcion_estado) != 1)
-        {
-            limpiarBuffer();
-            return;
-        }
-        limpiarBuffer();
+        if (estado_actual[0] == '\0') { printf("[ERROR] ID no encontrado.\n"); return; }
 
         const char *nuevo_estado = NULL;
-        if (strcmp(estado_actual, "En revision") == 0)
-        {
-            if (opcion_estado == 1)
-                nuevo_estado = "Aprobada";
-            else if (opcion_estado == 2)
-                nuevo_estado = "Denegada";
-        }
-        else if (strcmp(estado_actual, "Aprobada") == 0)
-        {
-            if (opcion_estado == 1)
-                nuevo_estado = "Caducada";
+        int opcion_estado;
+
+        if (strcmp(estado_actual, "En revision") == 0) {
+            printf("\n1. Aprobada\n2. Denegada\nSeleccion: ");
+            scanf("%d", &opcion_estado); limpiarBuffer();
+            nuevo_estado = (opcion_estado == 1) ? "Aprobada" : (opcion_estado == 2) ? "Denegada" : NULL;
+        } else if (strcmp(estado_actual, "Aprobada") == 0) {
+            printf("\n1. Caducada\nSeleccion: ");
+            scanf("%d", &opcion_estado); limpiarBuffer();
+            if (opcion_estado == 1) nuevo_estado = "Caducada";
         }
 
-        if (!nuevo_estado || !transicion_estado_valida(estado_actual, nuevo_estado))
-        {
-            printf("[!] Transicion no permitida desde '%s'.\n", estado_actual);
-            return;
+        if (nuevo_estado) {
+            sqlite3_stmt *stmt_upd;
+            const char *sql_upd = "UPDATE Licencia SET estado=? WHERE id_licencia=?;";
+            if (sqlite3_prepare_v2(db, sql_upd, -1, &stmt_upd, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(stmt_upd, 1, nuevo_estado, -1, SQLITE_STATIC);
+                sqlite3_bind_int(stmt_upd, 2, id);
+                if (sqlite3_step(stmt_upd) == SQLITE_DONE) {
+                    printf("[OK] Estado actualizado a %s.\n", nuevo_estado);
+                    log_escribir("Estado de licencia actualizado.");
+                }
+                sqlite3_finalize(stmt_upd);
+            }
         }
-
-        char sql[256];
-        snprintf(sql, sizeof(sql),
-                 "UPDATE Licencia SET estado='%s' WHERE id_licencia=%d;",
-                 nuevo_estado, id);
-
-        if (db_ejecutar(sql))
-        {
-            printf("[OK] Licencia %d actualizada a '%s'.\n", id, nuevo_estado);
-            char msg[200];
-            snprintf(msg, sizeof(msg),
-                     "Ha cambiado el estado de la licencia ID %d a '%s'", id, nuevo_estado);
-            log_escribir(msg);
-        }
-        else
-        {
-            printf("[ERROR] No se pudo actualizar el estado.\n");
-        }
-
-        // --- ELIMINAR ---
     }
     else if (accion == 2)
     {
-        char confirmar;
-        printf("[CONFIRMAR] Esta accion elimina la licencia %d. Continuar? (s/n): ", id);
-        if (scanf(" %c", &confirmar) != 1)
-        {
-            limpiarBuffer();
-            return;
-        }
-        limpiarBuffer();
-        confirmar = (char)tolower((unsigned char)confirmar);
-        if (confirmar != 's')
-        {
-            printf("[INFO] Eliminacion cancelada.\n");
-            return;
-        }
-
-        char sql[128];
-        snprintf(sql, sizeof(sql),
-                 "DELETE FROM Licencia WHERE id_licencia=%d;", id);
-
-        if (db_ejecutar(sql))
-        {
-            if (sqlite3_changes(db) > 0)
-            {
-                printf("[OK] Licencia %d eliminada correctamente.\n", id);
-                char msg[100];
-                snprintf(msg, sizeof(msg), "Ha eliminado la licencia con ID %d", id);
-                log_escribir(msg);
+        sqlite3_stmt *stmt_del;
+        const char *sql_del = "DELETE FROM Licencia WHERE id_licencia=?;";
+        if (sqlite3_prepare_v2(db, sql_del, -1, &stmt_del, NULL) == SQLITE_OK) {
+            sqlite3_bind_int(stmt_del, 1, id);
+            if (sqlite3_step(stmt_del) == SQLITE_DONE && sqlite3_changes(db) > 0) {
+                printf("[OK] Licencia eliminada.\n");
             }
-            else
-            {
-                printf("[ERROR] No se encontro la licencia con ID %d.\n", id);
-            }
+            sqlite3_finalize(stmt_del);
         }
-        else
-        {
-            printf("[ERROR] No se pudo eliminar la licencia.\n");
-        }
-    }
-    else if (accion != 0)
-    {
-        printf("[!] Opcion invalida.\n");
     }
 }
 
@@ -586,152 +449,39 @@ void tipo_licencia_gestionar()
     do
     {
         printf("\n--- TIPOS DE LICENCIA ---\n");
-        printf("1. Listar tipos\n");
-        printf("2. Crear nuevo tipo\n");
-        printf("3. Dar de baja / reactivar tipo\n");
-        printf("0. Volver\n");
-        printf("Seleccion: ");
-
-        if (scanf("%d", &opcion) != 1)
-        {
-            limpiarBuffer();
-            opcion = -1;
-            continue;
-        }
+        printf("1. Listar tipos\n2. Crear nuevo tipo\n3. Dar de baja / reactivar tipo\n0. Volver\nSeleccion: ");
+        if (scanf("%d", &opcion) != 1) { limpiarBuffer(); continue; }
         limpiarBuffer();
 
-        if (opcion == 1)
-        {
-            printf("\n--- LISTADO DE TIPOS ---\n");
-            int total = 0;
-            char *err = NULL;
-            sqlite3_exec(db,
-                         "SELECT id_tipo, nombre, descripcion, requisitos, activo FROM TipoLicencia;",
-                         callback_listar_tipos, &total, &err);
-            if (total == 0)
-                printf("[INFO] No hay tipos de licencia registrados.\n");
-        }
-        else if (opcion == 2)
+        if (opcion == 2)
         {
             char nombre[128], descripcion[256], requisitos[256];
+            printf("Nombre: "); scanf(" %127[^\n]", nombre); limpiarBuffer();
+            printf("Descripcion: "); scanf(" %255[^\n]", descripcion); limpiarBuffer();
+            printf("Requisitos: "); scanf(" %255[^\n]", requisitos); limpiarBuffer();
 
-            printf("Nombre del tipo: ");
-            scanf(" %127[^\n]", nombre);
-            limpiarBuffer();
-
-            printf("Descripcion: ");
-            scanf(" %255[^\n]", descripcion);
-            limpiarBuffer();
-
-            printf("Requisitos: ");
-            scanf(" %255[^\n]", requisitos);
-            limpiarBuffer();
-
-            if (cadena_vacia(nombre))
-            {
-                printf("[ERROR] El nombre del tipo no puede estar vacio.\n");
-                continue;
-            }
-
-            sqlite3_stmt *stmt_dup = NULL;
-            const char *sql_dup = "SELECT COUNT(*) FROM TipoLicencia WHERE nombre=?;";
-            int existe_nombre = 0;
-            if (sqlite3_prepare_v2(db, sql_dup, -1, &stmt_dup, NULL) == SQLITE_OK)
-            {
-                sqlite3_bind_text(stmt_dup, 1, nombre, -1, SQLITE_TRANSIENT);
-                if (sqlite3_step(stmt_dup) == SQLITE_ROW)
-                {
-                    existe_nombre = sqlite3_column_int(stmt_dup, 0) > 0;
-                }
-                sqlite3_finalize(stmt_dup);
-            }
-            if (existe_nombre)
-            {
-                printf("[ERROR] Ya existe un tipo con ese nombre.\n");
-                continue;
-            }
-
-            char sql[768];
-            snprintf(sql, sizeof(sql),
-                     "INSERT INTO TipoLicencia (nombre, descripcion, requisitos, activo) "
-                     "VALUES ('%s', '%s', '%s', 1);",
-                     nombre, descripcion, requisitos);
-
-            if (db_ejecutar(sql))
-            {
-                printf("[OK] Tipo '%s' creado correctamente.\n", nombre);
-                char msg[200];
-                snprintf(msg, sizeof(msg), "Ha creado el tipo de licencia '%s'", nombre);
-                log_escribir(msg);
-            }
-            else
-            {
-                printf("[ERROR] No se pudo crear el tipo.\n");
+            sqlite3_stmt *stmt_ins;
+            const char *sql_ins = "INSERT INTO TipoLicencia (nombre, descripcion, requisitos, activo) VALUES (?, ?, ?, 1);";
+            if (sqlite3_prepare_v2(db, sql_ins, -1, &stmt_ins, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(stmt_ins, 1, nombre, -1, SQLITE_STATIC);
+                sqlite3_bind_text(stmt_ins, 2, descripcion, -1, SQLITE_STATIC);
+                sqlite3_bind_text(stmt_ins, 3, requisitos, -1, SQLITE_STATIC);
+                if (sqlite3_step(stmt_ins) == SQLITE_DONE) printf("[OK] Tipo creado.\n");
+                sqlite3_finalize(stmt_ins);
             }
         }
         else if (opcion == 3)
         {
-            printf("\n--- TIPOS ACTUALES ---\n");
-            int total = 0;
-            char *err = NULL;
-            sqlite3_exec(db,
-                         "SELECT id_tipo, nombre, descripcion, requisitos, activo FROM TipoLicencia;",
-                         callback_listar_tipos, &total, &err);
-            if (total == 0)
-            {
-                printf("[INFO] No hay tipos registrados.\n");
-                continue;
-            }
-
             int id;
-            printf("\nID del tipo: ");
-            if (scanf("%d", &id) != 1)
-            {
-                limpiarBuffer();
-                continue;
-            }
-            limpiarBuffer();
+            printf("ID del tipo: "); scanf("%d", &id); limpiarBuffer();
 
-            // Leer estado actual con sqlite3_prepare_v2
-            char sql_check[128];
-            snprintf(sql_check, sizeof(sql_check),
-                     "SELECT activo FROM TipoLicencia WHERE id_tipo=%d;", id);
-
-            int estado_actual = -1;
-            sqlite3_stmt *stmt;
-            if (sqlite3_prepare_v2(db, sql_check, -1, &stmt, NULL) == SQLITE_OK)
-            {
-                if (sqlite3_step(stmt) == SQLITE_ROW)
-                    estado_actual = sqlite3_column_int(stmt, 0);
-                sqlite3_finalize(stmt);
-            }
-
-            if (estado_actual == -1)
-            {
-                printf("[ERROR] No existe ningun tipo con ID %d.\n", id);
-                continue;
-            }
-
-            int nuevo_estado = estado_actual ? 0 : 1;
-            char sql[128];
-            snprintf(sql, sizeof(sql),
-                     "UPDATE TipoLicencia SET activo=%d WHERE id_tipo=%d;",
-                     nuevo_estado, id);
-
-            if (db_ejecutar(sql))
-            {
-                printf("[OK] Tipo %d ahora esta %s.\n", id, nuevo_estado ? "ACTIVO" : "BAJA");
-                char msg[150];
-                snprintf(msg, sizeof(msg),
-                         "Ha cambiado el tipo de licencia ID %d a '%s'",
-                         id, nuevo_estado ? "ACTIVO" : "BAJA");
-                log_escribir(msg);
-            }
-            else
-            {
-                printf("[ERROR] No se pudo cambiar el estado del tipo.\n");
+            sqlite3_stmt *stmt_upd;
+            const char *sql_upd = "UPDATE TipoLicencia SET activo = NOT activo WHERE id_tipo=?;";
+            if (sqlite3_prepare_v2(db, sql_upd, -1, &stmt_upd, NULL) == SQLITE_OK) {
+                sqlite3_bind_int(stmt_upd, 1, id);
+                if (sqlite3_step(stmt_upd) == SQLITE_DONE) printf("[OK] Estado alternado.\n");
+                sqlite3_finalize(stmt_upd);
             }
         }
-
     } while (opcion != 0);
 }

@@ -158,21 +158,27 @@ void espacios_anadir()
 
     } while (precio < 0);
 
-    char sql[512];
-    snprintf(sql, sizeof(sql),
-             "INSERT INTO Espacio (nombre, capacidad, precio_hora, activo) "
-             "VALUES ('%s', %d, %.2f, 1);",
-             nombre, capacidad, precio);
+    sqlite3_stmt *stmt;
+    const char *sql = "INSERT INTO Espacio (nombre, capacidad, precio_hora, activo) VALUES (?, ?, ?, 1);";
 
-    if (db_ejecutar(sql))
-    {
-        printf("[OK] Espacio '%s' añadido correctamente.\n", nombre);
-        char msg[200]; // Sobran ajustar luego si eso
-        snprintf(msg, sizeof(msg), "Ha agregado a la BD un nuevo  espacio llamado '%s'", nombre);
-        log_escribir(msg);
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, nombre, -1, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 2, capacidad);
+        sqlite3_bind_double(stmt, 3, (double)precio);
+
+        if (sqlite3_step(stmt) == SQLITE_DONE) {
+            printf("[OK] Espacio '%s' añadido correctamente.\n", nombre);
+            
+            char msg[200];
+            snprintf(msg, sizeof(msg), "Ha agregado a la BD el espacio '%s'", nombre);
+            log_escribir(msg);
+        } else {
+            printf("[ERROR] No se pudo ejecutar el guardado.\n");
+        }
+        sqlite3_finalize(stmt);
+    } else {
+        printf("[ERROR] Error al preparar la consulta.\n");
     }
-    else
-        printf("[ERROR] No se pudo añadir el espacio.\n");
 }
 void espacios_cambiar_estado()
 {
@@ -233,26 +239,19 @@ void eliminar_espacio()
         return;
     }
 
-    char sql[128];
-    snprintf(sql, sizeof(sql), "DELETE FROM Espacio WHERE id_espacio=%d;", id);
+    sqlite3_stmt *stmt;
+    const char *sql = "DELETE FROM Espacio WHERE id_espacio = ?;";
 
-    if (db_ejecutar(sql))
-    {
-        // Comprobamos si realmente se borró alguna fila
-        if (sqlite3_changes(db) > 0)
-        {
-            printf("[OK] Espacio %d eliminado de la base de datos.\n", id);
-            char msg[50]; // Sobran ajustar luego si eso
-            snprintf(msg, sizeof(msg), "Ha eliminado de la BD el espacio con id %d ", id);
-            log_escribir(msg);
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_int(stmt, 1, id);
+
+        if (sqlite3_step(stmt) == SQLITE_DONE) {
+            if (sqlite3_changes(db) > 0) {
+                printf("[OK] Espacio %d eliminado.\n", id);
+            } else {
+                printf("[ADVERTENCIA] No existe ID %d.\n", id);
+            }
         }
-        else
-        {
-            printf("[ADVERTENCIA] No se encontró ningún espacio con ID %d.\n", id);
-        }
-    }
-    else
-    {
-        printf("[ERROR] Error crítico al ejecutar la sentencia de borrado.\n");
+        sqlite3_finalize(stmt);
     }
 }

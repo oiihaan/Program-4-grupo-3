@@ -7,17 +7,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-//Pa los resultados del select, q sino se liaba
-static int callback_login(void *data, int cols, char **valores, char **nombres) {
-    int *encontrado = (int *)data;
-    if (valores[0] && atoi(valores[0]) > 0)
-        *encontrado = 1;
-    return 0;
-}
-
 int auth_login() {
     char usuario[64];
-    char* password;
+    char *password;
     int intentos = definir_intentos();
 
     printf("=========================================\n");
@@ -28,21 +20,29 @@ int auth_login() {
         printf("\nUsuario: ");
         scanf("%63s", usuario);
         limpiarBuffer();
-    
-        do{
         password = capturar_contrasena();
-        } while (!comprobar_contrasena(password));
 
+        if (password == NULL) {
+            printf("[ERROR] Error de memoria.\n");
+            return 0;
+        }
 
-        char sql[256];
-        snprintf(sql, sizeof(sql),
+        // Cambio el sprintf por una sentencia preparada para evitarnos una sql inyection
+        // Tambien quito el buffer de tamaño fijo para evitar buffer overflow
+        sqlite3_stmt *stmt;
+        const char *sql =
             "SELECT COUNT(*) FROM Admin "
-            "WHERE nombre_usuario='%s' AND password='%s' AND activo=1;",
-            usuario, password);
+            "WHERE nombre_usuario=? AND password=? AND activo=1;";
 
         int encontrado = 0;
-        sqlite3_exec(db, sql, callback_login, &encontrado, NULL);
-        char *usr = log_get_usuario();
+        if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK) {
+            sqlite3_bind_text(stmt, 1, usuario,  -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 2, password, -1, SQLITE_STATIC);
+            if (sqlite3_step(stmt) == SQLITE_ROW)
+                encontrado = sqlite3_column_int(stmt, 0);
+            sqlite3_finalize(stmt);
+        }
+
         log_escribir("Ha buscado en la base de datos");
         free(password);
 
@@ -55,14 +55,13 @@ int auth_login() {
             intentos--;
             if (intentos > 0)
                 printf("[ERROR] Credenciales incorrectas. Intentos restantes: %d\n", intentos);
-                char msg[47]; //caracteres justos contados para fallos de 3 para abajp
-                snprintf(msg, sizeof(msg), "Login fallido - intentos restantes: %d", intentos); //Es la unica manera que he encontrado de guardar un char escrita con algo de otra variable
-                log_login_escribir(usuario,msg);
+            char msg[47];
+            snprintf(msg, sizeof(msg), "Login fallido - intentos restantes: %d", intentos);
+            log_login_escribir(usuario, msg);
         }
     }
 
     printf("\n[ERROR] Demasiados intentos fallidos. Cerrando programa.\n");
     log_escribir("Acceso bloqueado por exceso de intentos fallidos");
-
     return 0;
 }

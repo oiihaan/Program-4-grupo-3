@@ -525,25 +525,40 @@ void noticia_publicar()
     struct tm *fecha = localtime(&ahora);
     strftime(fecha_publicacion, sizeof(fecha_publicacion), "%Y-%m-%d", fecha);
 
-    char sql[1024];
-    snprintf(sql, sizeof(sql),
-             "INSERT INTO Publicacion (tipo, categoria, titulo, enlace, dni_admin, fecha_publicacion, estado) "
-             "VALUES ('%s', '%s', '%s', '%s', '%s', '%s', 'ACTIVA');",
-             tipo, categoria, titulo, enlace, dni_admin, fecha_publicacion);
+    sqlite3_stmt *stmt;
+    const char *sql = "INSERT INTO Publicacion (tipo, categoria, titulo, enlace, dni_admin, fecha_publicacion, estado) "
+                      "VALUES (?, ?, ?, ?, ?, ?, 'ACTIVA');";
 
-    if (db_ejecutar(sql))
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK)
     {
-        printf("[OK] Noticia '%s' publicada correctamente.\n", titulo);
+        // Vinculamos cada variable al marcador '?' correspondiente
+        sqlite3_bind_text(stmt, 1, tipo, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, categoria, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 3, titulo, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 4, enlace, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 5, dni_admin, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 6, fecha_publicacion, -1, SQLITE_STATIC);
 
-        char msg[512];
-        snprintf(msg, sizeof(msg),
-                 "Ha agregado a la BD una nueva publicacion titulada '%s'",
-                 titulo);
-        log_escribir(msg);
+        if (sqlite3_step(stmt) == SQLITE_DONE)
+        {
+            printf("[OK] Noticia '%s' publicada correctamente.\n", titulo);
+
+            char msg[512];
+            snprintf(msg, sizeof(msg),
+                     "Ha agregado a la BD una nueva publicacion titulada '%s'",
+                     titulo);
+            log_escribir(msg);
+        }
+        else
+        {
+            printf("[ERROR] No se pudo publicar la noticia: %s\n", sqlite3_errmsg(db));
+        }
+        
+        sqlite3_finalize(stmt);
     }
     else
     {
-        printf("[ERROR] No se pudo publicar la noticia.\n");
+        printf("[ERROR] Error al preparar la consulta: %s\n", sqlite3_errmsg(db));
     }
 }
 void mostrarDeportes()
@@ -702,64 +717,71 @@ void noticia_gestionar()
             scanf(" %255[^\n]", nuevo_valor);
             limpiarBuffer();
 
-            char sql[512];
-            snprintf(sql, sizeof(sql),
-                     "UPDATE Publicacion SET %s='%s' "
-                     "WHERE id_publicacion=%d AND estado='ACTIVA';",
-                     nombre_campo_sql, nuevo_valor, id);
+            sqlite3_stmt *stmt;
+            char sql_query[512];
+            // El nombre de la columna se concatena porque es estático (viene de nuestro switch), 
+            // pero el valor del usuario se protege con '?'
+            snprintf(sql_query, sizeof(sql_query), "UPDATE Publicacion SET %s=? WHERE id_publicacion=? AND estado='ACTIVA';", nombre_campo_sql);
 
-            if (db_ejecutar(sql))
+            if (sqlite3_prepare_v2(db, sql_query, -1, &stmt, NULL) == SQLITE_OK)
             {
-                if (sqlite3_changes(db) > 0)
+                sqlite3_bind_text(stmt, 1, nuevo_valor, -1, SQLITE_STATIC);
+                sqlite3_bind_int(stmt, 2, id);
+
+                if (sqlite3_step(stmt) == SQLITE_DONE)
                 {
-                    printf("[OK] Campo '%s' actualizado correctamente.\n", nombre_campo_log);
-                    char msg[300];
-                    snprintf(msg, sizeof(msg),
-                             "Ha editado el campo '%s' de la publicacion con ID %d",
-                             nombre_campo_log, id);
-                    log_escribir(msg);
+                    if (sqlite3_changes(db) > 0)
+                    {
+                        printf("[OK] Campo '%s' actualizado correctamente.\n", nombre_campo_log);
+                        char msg[300];
+                        snprintf(msg, sizeof(msg), "Ha editado el campo '%s' de la publicacion con ID %d", nombre_campo_log, id);
+                        log_escribir(msg);
+                    }
+                    else
+                    {
+                        printf("[ERROR] No existe ninguna noticia activa con ID %d.\n", id);
+                        editando = 0;
+                    }
                 }
                 else
                 {
-                    printf("[ERROR] No existe ninguna noticia activa con ID %d.\n", id);
-                    editando = 0;
+                    printf("[ERROR] No se pudo actualizar el campo.\n");
                 }
-            }
-            else
-            {
-                printf("[ERROR] No se pudo actualizar el campo.\n");
+                sqlite3_finalize(stmt);
             }
         }
-
         printf("[INFO] Edicion finalizada para la noticia ID %d.\n", id);
     }
 
     // --- ELIMINAR ---
     if (accion == 2)
     {
-        char sql[256];
-        snprintf(sql, sizeof(sql),
-                 "UPDATE Publicacion SET estado='ELIMINADA' "
-                 "WHERE id_publicacion=%d AND estado='ACTIVA';",
-                 id);
+        sqlite3_stmt *stmt;
+        const char *sql_del = "UPDATE Publicacion SET estado='ELIMINADA' WHERE id_publicacion=? AND estado='ACTIVA';";
 
-        if (db_ejecutar(sql))
+        if (sqlite3_prepare_v2(db, sql_del, -1, &stmt, NULL) == SQLITE_OK)
         {
-            if (sqlite3_changes(db) > 0)
+            sqlite3_bind_int(stmt, 1, id);
+
+            if (sqlite3_step(stmt) == SQLITE_DONE)
             {
-                printf("[OK] Noticia con ID %d eliminada correctamente.\n", id);
-                char msg[200];
-                snprintf(msg, sizeof(msg), "Ha eliminado la publicacion con ID %d", id);
-                log_escribir(msg);
+                if (sqlite3_changes(db) > 0)
+                {
+                    printf("[OK] Noticia con ID %d eliminada correctamente.\n", id);
+                    char msg[200];
+                    snprintf(msg, sizeof(msg), "Ha eliminado la publicacion con ID %d", id);
+                    log_escribir(msg);
+                }
+                else
+                {
+                    printf("[ERROR] No existe ninguna noticia activa con ID %d.\n", id);
+                }
             }
             else
             {
-                printf("[ERROR] No existe ninguna noticia activa con ID %d.\n", id);
+                printf("[ERROR] No se pudo eliminar la noticia.\n");
             }
-        }
-        else
-        {
-            printf("[ERROR] No se pudo eliminar la noticia.\n");
+            sqlite3_finalize(stmt);
         }
         return;
     }
