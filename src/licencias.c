@@ -14,9 +14,9 @@ void submenuLicencias()
     do
     {
         printf("\n--- GESTION DE LICENCIAS ---\n");
-        printf("1. Hacer solicitud de un expediente\n");
-        printf("2. Gestionar expedientes (Aceptar/Denegar)\n");
-        printf("3. Consultar licencias\n");
+        printf("1. Solicitar licencia\n");
+        printf("2. Gestionar solicitudes (Aceptar/Denegar)\n");
+        printf("3. Consultar licencias e historial de solicitudes\n");
         printf("0. Volver al menu principal\n");
         printf("Seleccion: ");
 
@@ -51,9 +51,9 @@ void submenuConsultaLicencias()
     int opcion;
     do
     {
-        printf("\n--- CONSULTA DE EXPEDIENTES ---\n");
-        printf("1. Ver el historico de expedientes\n");
-        printf("2. Tipos de licencia\n");
+    printf("\n--- CONSULTA DE TIPOS E HISTORIAL ---\n");
+        printf("1. Tipos de licencia\n");
+        printf("2. Historial de solicitudes\n");
         printf("0. Volver\n");
         printf("Seleccion: ");
 
@@ -66,10 +66,10 @@ void submenuConsultaLicencias()
         switch (opcion)
         {
         case 1:
-            licencias_listar();
+            tipo_licencia_gestionar();
             break;
         case 2:
-            tipo_licencia_gestionar();
+            licencias_listar();
             break;
         case 0:
             printf("\nVolviendo...\n");
@@ -257,6 +257,7 @@ void licencias_listar()
         limpiarBuffer();
         return;
     }
+    printf("\n");
     limpiarBuffer();
 
     sqlite3_stmt *stmt;
@@ -411,7 +412,7 @@ void licencia_registrar()
 void licencia_gestionar()
 {
     licencias_marcar_caducadas();
-    printf("\n--- GESTIONAR LICENCIA ---\n");
+    printf("\n--- GESTION DE SOLICITUDES ---\n");
 
     int total = 0;
     const char *sql = "SELECT l.id_licencia, t.nombre, l.dni_ciudadano, l.estado, "
@@ -422,12 +423,12 @@ void licencia_gestionar()
     sqlite3_exec(db, sql, callback_listar_licencias_enRevision, &total, NULL);
 
     if (total == 0){
-        printf("\n[!] No se encontraron licencias pendientes de revision.\n");
+        printf("\n[!] No se encontraron solicitudes pendientes de revision.\n");
         return;
     } 
 
     int id;
-    printf("\nID de la licencia: ");
+    printf("\nID de la solicitud: ");
     if (scanf("%d", &id) != 1) { limpiarBuffer(); return; }
     limpiarBuffer();
 
@@ -453,9 +454,13 @@ void licencia_gestionar()
 
     // Como lo que estaba antes pero modificado para que funcione con la alteracion
     int accion;
+
+    do {
     printf("\n1. Aceptar/Rechazar solicitud\n2. Eliminar solicitud\n0. Cancelar\nSeleccion: ");
-    if (scanf("%d", &accion) != 1) { limpiarBuffer(); return; }
-    limpiarBuffer();
+    scanf("%d", &accion);
+    if (accion != 1 && accion != 2 && accion != 0) {
+        printf("[ERROR] Opcion no valida.\n");
+    } } while (accion != 0 && accion != 1 && accion != 2);
 
     if (accion == 1)
     {
@@ -504,7 +509,29 @@ void licencia_gestionar()
 }
 
 // ─── GESTIONAR TIPOS DE LICENCIA ─────────────────────────────────────────────
+void listar_tipos_licencia()
+{
+    int total = 0;
+    char *error_msg = NULL;
+    
+    // Añadimos 'activo' al SELECT
+    const char *sql = "SELECT id_tipo, nombre, descripcion, requisitos, activo FROM TipoLicencia;";
 
+    printf("\n--- CATALOGO DE LICENCIAS DISPONIBLES ---\n");
+    printf("--------------------------------------------------");
+
+    int resultado = sqlite3_exec(db, sql, callback_ver_tipos, &total, &error_msg);
+
+    if (resultado != SQLITE_OK) {
+        printf("\n[ERROR] No se pudo leer el catalogo: %s\n", error_msg);
+        sqlite3_free(error_msg);
+    } else if (total == 0) {
+        printf("\n[!] El catalogo esta vacio actualmente.\n");
+    } else {
+        printf("\nTotal de tipos de licencia: %d\n", total);
+    }
+
+}
 void tipo_licencia_gestionar()
 {
     int opcion;
@@ -517,25 +544,7 @@ void tipo_licencia_gestionar()
 
         if (opcion ==1 )
         {
-            int total = 0;
-            char *error_msg = NULL;
-            
-            // Añadimos 'activo' al SELECT
-            const char *sql = "SELECT id_tipo, nombre, descripcion, requisitos, activo FROM TipoLicencia;";
-
-            printf("\n--- CATALOGO DE LICENCIAS DISPONIBLES ---\n");
-            printf("--------------------------------------------------");
-
-            int resultado = sqlite3_exec(db, sql, callback_ver_tipos, &total, &error_msg);
-
-            if (resultado != SQLITE_OK) {
-                printf("\n[ERROR] No se pudo leer el catalogo: %s\n", error_msg);
-                sqlite3_free(error_msg);
-            } else if (total == 0) {
-                printf("\n[!] El catalogo esta vacio actualmente.\n");
-            } else {
-                printf("\nTotal de tipos de licencia: %d\n", total);
-            }
+            listar_tipos_licencia();
         }
         
         else if (opcion == 2)
@@ -558,8 +567,14 @@ void tipo_licencia_gestionar()
         else if (opcion == 3)
         {
             int id;
-            printf("ID del tipo: "); scanf("%d", &id); limpiarBuffer();
-
+            listar_tipos_licencia();
+            printf("\n");
+            printf("ID del tipo: "); 
+            scanf("%d", &id); limpiarBuffer();
+            if (id <= 0) {
+                printf("[ERROR] ID no valido.\n");
+                continue;
+            }
             sqlite3_stmt *stmt_upd;
             const char *sql_upd = "UPDATE TipoLicencia SET activo = NOT activo WHERE id_tipo=?;";
             if (sqlite3_prepare_v2(db, sql_upd, -1, &stmt_upd, NULL) == SQLITE_OK) {

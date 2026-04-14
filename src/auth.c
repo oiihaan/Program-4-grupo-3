@@ -90,7 +90,7 @@ int auth_login() {
     char usuario[64];
     char *password;
     int intentos = definir_intentos();
-
+    printf("\n\n");
     printf("=========================================\n");
     printf(">>> INICIO DE SESION DEL AYUNTAMIENTO <<<\n");
     printf("=========================================\n");
