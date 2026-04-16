@@ -584,28 +584,39 @@ void noticia_gestionar()
 
             switch (campo)
             {
-            case 1:
-                printf("Nueva categoria: ");
+            case 1: {
+                int opcion_cat;
+                do {
+                    printf("Nueva categoria:\n");
+                    printf("  1. Deportes\n");
+                    printf("  2. Politica\n");
+                    printf("Seleccion: ");
+                    if (scanf("%d", &opcion_cat) != 1) { limpiarBuffer(); opcion_cat = 0; }
+                    else limpiarBuffer();
+                } while (opcion_cat != 1 && opcion_cat != 2);
+                strcpy(nuevo_valor, opcion_cat == 1 ? "Deportes" : "Politica");
                 nombre_campo_sql = "categoria";
                 nombre_campo_log = "categoria";
                 break;
+            }
             case 2:
                 printf("Nuevo titulo: ");
                 nombre_campo_sql = "titulo";
                 nombre_campo_log = "titulo";
+                scanf(" %255[^\n]", nuevo_valor);
+                limpiarBuffer();
                 break;
             case 3:
                 printf("Nuevo enlace: ");
                 nombre_campo_sql = "enlace";
                 nombre_campo_log = "enlace";
+                scanf(" %255[^\n]", nuevo_valor);
+                limpiarBuffer();
                 break;
             default:
                 printf("[!] Opcion invalida.\n");
                 continue;
             }
-
-            scanf(" %255[^\n]", nuevo_valor);
-            limpiarBuffer();
 
             sqlite3_stmt *stmt;
             char sql_query[512];
