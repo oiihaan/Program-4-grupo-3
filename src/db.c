@@ -269,9 +269,8 @@ void db_insertar_datos_prueba(){
     );
     printf("[OK] Licencias de prueba creadas.\n");
 
-    printf("*** Datos de prueba insertados correctamente ***\n\n");
-
     log_escribir("Se han insertado los datos de prueba en la base de datos");
+
 }
 
 void db_insertar_publicaciones_prueba() {
