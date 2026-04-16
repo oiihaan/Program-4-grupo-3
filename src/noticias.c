@@ -441,6 +441,8 @@ void noticia_publicar()
 void mostrarDeportes()
 {
     printf("\n--- NOTICIAS DE DEPORTES ---\n");
+    log_escribir("Ha consultado las noticas sobre deportes");
+
 
     char *err = NULL;
     int total = 0;
@@ -465,6 +467,8 @@ void mostrarDeportes()
 void mostrarPolitica()
 {
     printf("\n--- NOTICIAS DE POLITICA ---\n");
+    log_escribir("Ha consultado las noticas sobre politica");
+
 
     char *err = NULL;
     int total = 0;
