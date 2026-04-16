@@ -315,6 +315,10 @@ void db_insertar_publicaciones_prueba() {
         "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
         "VALUES ('Politica', 'Arnaldo Otegi reclama el acercamiento de presos vascos en el debate sobre pacificacion', '2026-04-02', 'ACTIVA');"
     );
+    db_ejecutar(
+        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
+        "VALUES ('Politica', 'Iker pone un 10 al grupo 3 de Programacion IV por su excelente trabajo', '2026-04-16', 'ACTIVA');"
+    );
 
     db_ejecutar("PRAGMA foreign_keys = ON;");
     printf("[OK] Publicaciones de prueba creadas.\n");
