@@ -344,6 +344,7 @@ void mostrarTiempo()
     free(arr_lluvia);
     free(arr_codigo);
     free(resp.datos);
+
 }
 
 void noticia_publicar()
@@ -490,6 +491,8 @@ void noticia_listar()
     {
         printf("[INFO] No hay noticias registradas.\n");
     }
+    log_escribir("Ha consultado el listado completo de noticias");
+
 }
 
 void noticia_gestionar()

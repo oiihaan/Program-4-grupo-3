@@ -6,6 +6,8 @@
 #include <sqlite3.h>
 #include "../include/db.h"   
 #include "../include/auth.h"
+#include "../include/log.h"
+
 
 extern sqlite3 *db;
 
@@ -66,7 +68,7 @@ void submenuConfiguracion()
             scanf("%d", &subop);
 
             if (subop == 1) {
-                auth_editar_password(dni_sel); // Esta función debe estar en auth.c
+                auth_editar_password(dni_sel); 
             } else if (subop == 2) {
                 // Sentencia rápida para cambiar el estado
                 const char *sql_status = "UPDATE Admin SET activo = NOT activo WHERE dni = ?;";
@@ -75,6 +77,9 @@ void submenuConfiguracion()
                     sqlite3_step(stmt);
                     sqlite3_finalize(stmt);
                     printf("[OK] Estado actualizado.\n");
+                    char msg[200];
+                    snprintf(msg, sizeof(msg), "Ha alternado el estado del administrador con DNI %s", dni_sel);
+                    log_escribir(msg);
                 }
             }
             break;

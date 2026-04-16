@@ -42,6 +42,8 @@ int main() {
     // --------------------------------------------
 
     printf("[DEBUG] Comprobando usuarios en la BD...\n");
+    log_escribir("Ha buscado en la base de datos");
+
 
     if (sqlite3_prepare_v2(db, sql_check, -1, &stmt, NULL) == SQLITE_OK) {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -61,11 +63,12 @@ int main() {
     }
 
     // 4. Login
-    if (!auth_login()) {
+    if (!auth_login()) { 
+        log_escribir("El sistema se ha apagado\n");
+        curl_global_cleanup();
         db_cerrar();
-        return 1;
+        return 0;
     }
-
     // 5. Menú principal (Resto del código igual...)
     int opcion;
     do {
@@ -96,7 +99,7 @@ int main() {
         }
     } while (opcion != 0);
 
-    log_escribir("El sistema se ha apagado");
+    log_escribir("El sistema se ha apagado\n");
     curl_global_cleanup();
     db_cerrar();
     return 0;

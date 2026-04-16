@@ -292,6 +292,8 @@ void reservas_listar_todas() {
 
     printf("  Total de reservas: %d | Activas: %d | Canceladas: %d\n",
         total_reservas, activas, total_reservas - activas);
+    log_escribir("Ha consultado el listado completo de reservas");
+
 }
 
 /* READ - Listar reservas de un espacio específico */

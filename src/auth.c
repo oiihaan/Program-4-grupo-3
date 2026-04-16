@@ -82,6 +82,9 @@ void admin_registrar_nuevo() {
             sqlite3_step(stmt);
             sqlite3_finalize(stmt);
             printf("[OK] Administrador creado exitosamente con seguridad SHA-256.\n");
+            char msg[200];
+            snprintf(msg, sizeof(msg), "Se ha creado un  administrador con DNI %s", dni);
+            log_escribir(msg);
         }
     }
 }
@@ -102,8 +105,8 @@ int auth_login() {
         password = capturar_contrasena();
 
         if (password == NULL) {
-            printf("[ERROR] Error de memoria.\n");
-            return 0;
+            printf("[ERROR] La contraseña no puede estar vacía.\n");
+            continue;
         }
 
         // 1. Modificamos la consulta: Obtenemos el hash y la fecha para ese usuario
@@ -185,5 +188,8 @@ void auth_editar_password(const char* dni) {
         sqlite3_step(stmt);
         sqlite3_finalize(stmt);
         printf("[OK] Contraseña actualizada con hash SHA-256.\n");
+        char msg[200];
+    snprintf(msg, sizeof(msg), "Ha cambiado la contraseña del administrador con DNI %s", dni);
+    log_escribir(msg);
     }
 }

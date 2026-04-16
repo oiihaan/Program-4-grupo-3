@@ -165,7 +165,9 @@ void espacios_listar()
     {
         printf("[ERROR] %s\n", err);
         sqlite3_free(err);
-    }
+    }   
+    log_escribir("Ha consultado el listado de espacios");
+
 }
 
 void espacios_anadir()
@@ -291,4 +293,7 @@ void eliminar_espacio()
         }
         sqlite3_finalize(stmt);
     }
+    char msg[200];
+    snprintf(msg, sizeof(msg), "Ha eliminado el espacio con ID %d de la base de datos", id);
+    log_escribir(msg);
 }

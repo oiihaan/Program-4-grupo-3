@@ -272,6 +272,8 @@ void licencias_listar()
                           "JOIN TipoLicencia t ON l.id_tipo = t.id_tipo;";
         
         sqlite3_exec(db, sql, callback_listar_licencias, &total, &err);
+        log_escribir("Ha consultado todas las licencias");
+
     }
     else if (opcion == 2)
     {
@@ -317,11 +319,15 @@ void licencias_listar()
             }
             sqlite3_finalize(stmt);
         }
+        char msg[200];
+        snprintf(msg, sizeof(msg), "Ha filtrado licencias por estado: %s", estado);
+        log_escribir(msg);
     }
+    
 
     if (total == 0)
         printf("[INFO] No hay licencias que mostrar.\n");
-}
+}   
 
 // ─── REGISTRAR LICENCIA ───────────────────────────────────────────────────────
 
@@ -489,10 +495,14 @@ void licencia_gestionar()
                 sqlite3_bind_int(stmt_upd, 2, id);
                 if (sqlite3_step(stmt_upd) == SQLITE_DONE) {
                     printf("[OK] Estado actualizado a %s.\n", nuevo_estado);
+                    char msg[256];
+                    snprintf(msg, sizeof(msg), "Ha cambiado el estado de la licencia ID %d a: %s", id, nuevo_estado);
+                    log_escribir(msg);
                 }
                 sqlite3_finalize(stmt_upd);
             }
         }
+
     }
     else if (accion == 2)
     {
@@ -502,6 +512,9 @@ void licencia_gestionar()
             sqlite3_bind_int(stmt_del, 1, id);
             if (sqlite3_step(stmt_del) == SQLITE_DONE && sqlite3_changes(db) > 0) {
                 printf("[OK] Licencia eliminada.\n");
+                char msg[200];
+                snprintf(msg, sizeof(msg), "Ha eliminado la licencia con ID %d", id);
+                log_escribir(msg);
             }
             sqlite3_finalize(stmt_del);
         }
@@ -529,6 +542,8 @@ void listar_tipos_licencia()
         printf("\n[!] El catalogo esta vacio actualmente.\n");
     } else {
         printf("\nTotal de tipos de licencia: %d\n", total);
+        log_escribir("Ha consultado los tipos de licencia disponibles");
+
     }
 
 }
@@ -560,7 +575,11 @@ void tipo_licencia_gestionar()
                 sqlite3_bind_text(stmt_ins, 1, nombre, -1, SQLITE_STATIC);
                 sqlite3_bind_text(stmt_ins, 2, descripcion, -1, SQLITE_STATIC);
                 sqlite3_bind_text(stmt_ins, 3, requisitos, -1, SQLITE_STATIC);
-                if (sqlite3_step(stmt_ins) == SQLITE_DONE) printf("[OK] Tipo creado.\n");
+                if (sqlite3_step(stmt_ins) == SQLITE_DONE) {
+                    printf("[OK] Tipo creado.\n");
+                    char msg[300];
+                    snprintf(msg, sizeof(msg), "Ha creado un nuevo tipo de licencia: %s", nombre);
+                    log_escribir(msg);}
                 sqlite3_finalize(stmt_ins);
             }
         }
@@ -579,7 +598,12 @@ void tipo_licencia_gestionar()
             const char *sql_upd = "UPDATE TipoLicencia SET activo = NOT activo WHERE id_tipo=?;";
             if (sqlite3_prepare_v2(db, sql_upd, -1, &stmt_upd, NULL) == SQLITE_OK) {
                 sqlite3_bind_int(stmt_upd, 1, id);
-                if (sqlite3_step(stmt_upd) == SQLITE_DONE) printf("[OK] Estado alternado.\n");
+                if (sqlite3_step(stmt_upd) == SQLITE_DONE){
+                    printf("[OK] Estado alternado.\n");
+                    char msg[200];
+                    snprintf(msg, sizeof(msg), "Ha alternado el estado del tipo de licencia con ID %d", id);
+                    log_escribir(msg);
+                } 
                 sqlite3_finalize(stmt_upd);
             }
         }
