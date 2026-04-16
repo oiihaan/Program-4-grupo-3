@@ -248,24 +248,34 @@ void reservas_crear_Aciudadano() {
   
 
     // Insertar la reserva
-    char sql[512];
-    snprintf(sql, sizeof(sql),
+    sqlite3_stmt *stmt_ins;
+    const char *sql_ins =
         "INSERT INTO Reserva (id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas, cancelada) "
-        "VALUES (%d, '%s', '%s', '%s', '%s', %d, 0);",
-        id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin, num_personas);
+        "VALUES (?, ?, ?, ?, ?, ?, 0);";
 
-    if (db_ejecutar(sql)) {
-        printf("[OK] Reserva creada correctamente.\n");
-        printf("     Espacio: %d | DNI: %s | Fecha: %s | %s-%s\n",
-            id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin);
+    if (sqlite3_prepare_v2(db, sql_ins, -1, &stmt_ins, NULL) == SQLITE_OK) {
+        sqlite3_bind_int (stmt_ins, 1, id_espacio);
+        sqlite3_bind_text(stmt_ins, 2, dni_ciudadano, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt_ins, 3, fecha,         -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt_ins, 4, franja_inicio, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt_ins, 5, franja_fin,    -1, SQLITE_STATIC);
+        sqlite3_bind_int (stmt_ins, 6, num_personas);
 
-        char msg[256];
-        snprintf(msg, sizeof(msg),
-            "Ha creado una nueva reserva para el espacio %d para el ciudadano con Dni: %s)",
-            id_espacio, dni_ciudadano);
-        log_escribir(msg);
+        if (sqlite3_step(stmt_ins) == SQLITE_DONE) {
+            printf("[OK] Reserva creada correctamente.\n");
+            printf("     Espacio: %d | DNI: %s | Fecha: %s | %s-%s\n",
+                id_espacio, dni_ciudadano, fecha, franja_inicio, franja_fin);
+            char msg[256];
+            snprintf(msg, sizeof(msg),
+                "Ha creado una nueva reserva para el espacio %d para el ciudadano con DNI: %s",
+                id_espacio, dni_ciudadano);
+            log_escribir(msg);
+        } else {
+            printf("[ERROR] No se pudo crear la reserva.\n");
+        }
+        sqlite3_finalize(stmt_ins);
     } else {
-        printf("[ERROR] No se pudo crear la reserva.\n");
+        printf("[ERROR] Error al preparar la consulta: %s\n", sqlite3_errmsg(db));
     }
 }
 

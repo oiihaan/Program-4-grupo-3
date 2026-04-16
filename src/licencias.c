@@ -447,7 +447,7 @@ void licencia_gestionar()
         sqlite3_bind_int(stmt_est, 1, id);
         if (sqlite3_step(stmt_est) == SQLITE_ROW) {
             const unsigned char *txt = sqlite3_column_text(stmt_est, 0);
-            if (txt) strcpy(estado_actual, (char*)txt);
+            if (txt) strncpy(estado_actual, (char*)txt, sizeof(estado_actual) - 1);
         }
         sqlite3_finalize(stmt_est);
     }
