@@ -70,7 +70,7 @@ int main() {
     int opcion;
     do {
         printf("\n*** MENU PRINCIPAL DEL ADMINISTRADOR ***\n");
-        printf("1. Gestion de espacios\n");
+        printf("1. Gestion de espacios y sus reservas\n");
         printf("2. Gestion de noticias\n");
         printf("3. Gestion de licencias\n");
         printf("4. Configuracion\n");

@@ -12,15 +12,9 @@ void submenuEspacios()
     int opcion;
     do
     {
-        printf("\n--- GESTION DE ESPACIOS ---\n");
-        printf("1. Listar espacios\n");
-        printf("2. Anadir Espacios\n");
-        printf("3. Eliminar Espacio\n");
-        printf("4. Ver reservas de un espacio\n");
-        printf("5. Crear reserva a un ciudadano\n");
-        printf("6. Cancelar Reserva\n");
-        printf("7. Editar datos de las reservas\n");
-        printf("8. Cambiar estado espacio (ACTIVO/BAJA)\n");
+        printf("\n--- GESTION DE ESPACIOS Y RESERVAS ---\n");
+        printf("1. Gestionar Espacios\n");
+        printf("2. Gestionar Reservas\n");
         printf("0. Volver al menu principal\n");
         printf("Seleccion: ");
 
@@ -29,7 +23,40 @@ void submenuEspacios()
             limpiarBuffer();
             opcion = 0; // Forzamos un valor invalido
         }
+        switch (opcion)
+        {
+        case 1:
+            submenuGestionarEspacios();
+            break;
+        case 2:
+            submenuGestionarReservas();
+            break;
+        case 0:
+            printf("\nVolviendo al menu principal...\n");
+            break;
+        default:
+            printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
+        }
+    } while (opcion != 0);
+}
 
+void submenuGestionarEspacios(){
+     int opcion;
+    do
+    {
+        printf("\n--- CONSULTA DE ESPACIOS ---\n");
+        printf("1. Listar espacios\n");
+        printf("2. Anadir Espacios\n");
+        printf("3. Eliminar Espacio\n");
+        printf("4. Cambiar estado espacio (ACTIVO/BAJA)\n");
+        printf("0. Volver atras\n");
+        printf("Seleccion: ");
+
+        if (scanf("%d", &opcion) != 1)
+        {
+            limpiarBuffer();
+            opcion = 0; // Forzamos un valor invalido
+        }
         switch (opcion)
         {
         case 1:
@@ -42,23 +69,50 @@ void submenuEspacios()
             eliminar_espacio();
             break;
         case 4:
-            reservas_listar_por_espacio();
-            break;
-        case 5:
-            reservas_crear_Aciudadano();
-            break;
-        case 6:
-            reservas_cancelar();
-            break;
-        case 7:
-            reservas_editar();
-            break;
-            ;
-        case 8:
             espacios_cambiar_estado();
             break;
         case 0:
-            printf("\nVolviendo al menu principal...\n");
+            printf("\nVolviendo atras...\n");
+            break;
+        default:
+            printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
+        }
+    } while (opcion != 0);
+}
+
+void submenuGestionarReservas(){
+     int opcion;
+    do
+    {
+        printf("\n--- GESTION DE ESPACIOS ---\n");
+        printf("1. Crear reserva a un ciudadano\n");
+        printf("2. Ver reservas de un espacio\n");
+        printf("3. Cancelar Reserva\n");
+        printf("4. Editar datos de las reservas\n");
+        printf("0. Volver atras\n");
+        printf("Seleccion: ");
+        if (scanf("%d", &opcion) != 1)
+        {
+            limpiarBuffer();
+            opcion = 0; // Forzamos un valor invalido
+        }
+        switch (opcion)
+        {
+        case 1:
+            reservas_crear_Aciudadano();
+            break;
+        case 2:
+            reservas_listar_por_espacio();
+            break;
+        case 3:
+            reservas_cancelar();
+            break;
+        case 4:
+            reservas_editar();
+            break;
+            ;
+        case 0:
+            printf("\nVolviendo atras...\n");
             break;
         default:
             printf("\n[!] Opcion invalida. Intenta de nuevo.\n");
