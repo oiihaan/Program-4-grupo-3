@@ -284,16 +284,14 @@ void db_insertar_publicaciones_prueba() {
         "'https://www.diariovasco.com/real-sociedad/final-copa/', '2026-04-10', 'ACTIVA');"
     );
     db_ejecutar(
-        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
-        "VALUES ('Deportes', 'Baskonia golea al Barça y se acerca al liderato de la Liga ACB', '2026-04-08', 'ACTIVA');"
+        "INSERT INTO Publicacion (categoria, titulo, enlace, fecha_publicacion, estado) "
+        "VALUES ('Deportes', 'Ondrej Hanzlik renueva con el Gipuzkoa Basket', "
+        "'https://www.diariovasco.com/deportes/gipuzkoa-basket/', '2026-04-09', 'ACTIVA');"
     );
     db_ejecutar(
-        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
-        "VALUES ('Deportes', 'Athletic Club clasifica para semifinales de la Europa League', '2026-04-05', 'ACTIVA');"
-    );
-    db_ejecutar(
-        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
-        "VALUES ('Deportes', 'La SD Eibar vuelve a Primera Division tras ganar el playoff de ascenso', '2026-04-03', 'ACTIVA');"
+        "INSERT INTO Publicacion (categoria, titulo, enlace, fecha_publicacion, estado) "
+        "VALUES ('Deportes', 'Super Amara Bera Bera ficha a Kelly Fonkeng y Melinda Louis', "
+        "'https://berabera.com/es/secciones/balonmano/noticias', '2026-04-08', 'ACTIVA');"
     );
 
     /* --- POLITICA --- */
