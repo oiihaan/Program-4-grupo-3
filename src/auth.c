@@ -45,7 +45,6 @@ void admin_registrar_nuevo() {
     printf("\n--- REGISTRO DE NUEVO ADMINISTRADOR ---\n");
     do {
         printf("DNI: "); scanf("%31s", dni); limpiarBuffer();
-        if (!dni_es_valido(dni)) printf("[ERROR] DNI invalido. Formato esperado: 12345678Z.\n");
     } while (!dni_es_valido(dni));
     printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
     printf("Contraseña: "); scanf("%63s", password_plano); limpiarBuffer();
