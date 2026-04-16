@@ -2,6 +2,7 @@
 #include "../include/funciones.h"
 #include "../include/db.h"
 #include "../include/log.h"
+#include "../include/auth.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -62,6 +63,22 @@ static int callback_mostrar_deportes(void *data, int cols, char **valores, char 
     return 0;
 }
 
+static int callback_mostrar_politica(void *data, int cols, char **valores, char **nombres)
+{
+    int *contador = (int *)data;
+    const char *id = (valores[0] && valores[0][0]) ? valores[0] : "-";
+    const char *titulo = (valores[1] && valores[1][0]) ? valores[1] : "-";
+    const char *enlace = (valores[2] && valores[2][0]) ? valores[2] : "-";
+    const char *fecha = (valores[3] && valores[3][0]) ? valores[3] : "-";
+    const char *estado = (valores[4] && valores[4][0]) ? valores[4] : "-";
+
+    (*contador)++;
+    printf("  [%s] %-30s | %-10s | %-8s\n",
+           id, titulo, fecha, estado);
+    printf("      Enlace: %s\n", enlace);
+    return 0;
+}
+
 static int callback_listar_noticias(void *data, int cols, char **valores, char **nombres)
 {
     int *contador = (int *)data;
@@ -84,8 +101,9 @@ void verNoticias()
     {
         printf("\n--- CONSULTA DE NOTICIAS ---\n");
         printf("1. Deportes\n");
-        printf("2. El tiempo\n");
-        printf("3. Listar todas las noticias\n");
+        printf("2. Politica\n");
+        printf("3. El tiempo\n");
+        printf("4. Listar todas las noticias\n");
         printf("0. Volver al menu gestion de noticias\n");
         printf("Seleccion: ");
 
@@ -101,9 +119,12 @@ void verNoticias()
             mostrarDeportes();
             break;
         case 2:
-            mostrarTiempo();
+            mostrarPolitica();
             break;
         case 3:
+            mostrarTiempo();
+            break;
+        case 4:
             noticia_listar();
             break;
         case 0:
@@ -350,20 +371,23 @@ void noticia_publicar()
     char categoria[64];
     char titulo[256];
     char enlace[256];
-    char dni_admin[32];
     char fecha_publicacion[32];
 
     printf("\n--- PUBLICAR NOTICIA ---\n");
 
+    int opcion_cat;
     do
     {
-        printf("Categoria (Deportes, Cultura, Trafico, ...): ");
-        scanf(" %63[^\n]", categoria);
-        if (strlen(categoria) == 0)
-        {
-            printf("[ERROR] La categoria no puede estar vacia.\n");
-        }
-    } while (strlen(categoria) == 0);
+        printf("Categoria:\n");
+        printf("  1. Deportes\n");
+        printf("  2. Politica\n");
+        printf("Seleccion: ");
+        if (scanf("%d", &opcion_cat) != 1) { limpiarBuffer(); opcion_cat = 0; }
+        else limpiarBuffer();
+    } while (opcion_cat != 1 && opcion_cat != 2);
+
+    if (opcion_cat == 1) strcpy(categoria, "Deportes");
+    else                 strcpy(categoria, "Politica");
 
     do
     {
@@ -374,24 +398,12 @@ void noticia_publicar()
             printf("[ERROR] El titulo no puede estar vacio.\n");
         }
     } while (strlen(titulo) == 0);
+    limpiarBuffer();
 
-    do
-    {
-        printf("Enlace: ");
-        scanf(" %255[^\n]", enlace);
-        if (strlen(enlace) == 0)
-        {
-            printf("[ERROR] El enlace no puede estar vacio.\n");
-        }
-
-    } while (strlen(enlace) == 0);
-
-    do
-    {
-        printf("DNI del admin: ");
-        scanf(" %31[^\n]", dni_admin);
-        limpiarBuffer();
-    } while (!dni_es_valido(dni_admin));
+    printf("Enlace (opcional, pulsa Enter para omitir): ");
+    fflush(stdout);
+    if (fgets(enlace, sizeof(enlace), stdin) != NULL)
+        enlace[strcspn(enlace, "\n")] = '\0';
 
     time_t ahora = time(NULL);
     struct tm *fecha = localtime(&ahora);
@@ -407,7 +419,7 @@ void noticia_publicar()
         sqlite3_bind_text(stmt, 1, categoria, -1, SQLITE_STATIC);
         sqlite3_bind_text(stmt, 2, titulo, -1, SQLITE_STATIC);
         sqlite3_bind_text(stmt, 3, enlace, -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 4, dni_admin, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 4, dni_admin_sesion, -1, SQLITE_STATIC);
         sqlite3_bind_text(stmt, 5, fecha_publicacion, -1, SQLITE_STATIC);
 
         if (sqlite3_step(stmt) == SQLITE_DONE)
@@ -456,6 +468,31 @@ void mostrarDeportes()
         printf("[INFO] No hay publicaciones en la categoria Deportes.\n");
     }
 }
+void mostrarPolitica()
+{
+    printf("\n--- NOTICIAS DE POLITICA ---\n");
+
+    char *err = NULL;
+    int total = 0;
+    int resultado = sqlite3_exec(db,
+                                 "SELECT id_publicacion, titulo, enlace, fecha_publicacion, estado "
+                                 "FROM Publicacion "
+                                 "WHERE categoria='Politica' AND estado='ACTIVA';",
+                                 callback_mostrar_politica, &total, &err);
+
+    if (resultado != SQLITE_OK)
+    {
+        printf("[ERROR] %s\n", err);
+        sqlite3_free(err);
+        return;
+    }
+
+    if (total == 0)
+    {
+        printf("[INFO] No hay publicaciones en la categoria Politica.\n");
+    }
+}
+
 void noticia_listar()
 {
     printf("\n--- LISTADO DE LAS NOTICIAS ---\n");

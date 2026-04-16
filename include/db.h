@@ -12,5 +12,6 @@ void db_cerrar();
 void db_crear_tablas();
 int  db_ejecutar(const char *sql);
 void db_insertar_datos_prueba();
+void db_insertar_publicaciones_prueba();
 
 #endif

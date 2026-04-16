@@ -18,6 +18,8 @@
 #include <stdlib.h>
 #include "sha256.h"
 
+char dni_admin_sesion[32] = "";
+
 void auth_generar_hash(const char *password, const char *fecha, char *out_hash) {
     struct tc_sha256_state_struct s;
     uint8_t digest[32];
@@ -41,10 +43,12 @@ void admin_registrar_nuevo() {
     char fecha_aux[32] = "";
 
     printf("\n--- REGISTRO DE NUEVO ADMINISTRADOR ---\n");
-    printf("DNI: "); scanf("%31s", dni);
-    printf("Usuario: "); scanf("%63s", usuario);
-    printf("Contraseña: "); scanf("%63s", password_plano);
-    limpiarBuffer();
+    do {
+        printf("DNI: "); scanf("%31s", dni); limpiarBuffer();
+        if (!dni_es_valido(dni)) printf("[ERROR] DNI invalido. Formato esperado: 12345678Z.\n");
+    } while (!dni_es_valido(dni));
+    printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
+    printf("Contraseña: "); scanf("%63s", password_plano); limpiarBuffer();
 
     sqlite3_stmt *stmt;
     // 1: Insertar registro base
@@ -139,10 +143,19 @@ int auth_login() {
         log_escribir("Ha buscado en la base de datos");
         free(password);
 
-        if (autenticado) { // Usamos la nueva variable de control
+        if (autenticado) {
             printf("\n[OK] Bienvenido, %s!\n", usuario);
             log_set_usuario(usuario);
             log_escribir("Inicio de sesion exitoso");
+
+            // Guardar el DNI del admin que ha iniciado sesion
+            const char *sql_dni = "SELECT dni FROM Admin WHERE nombre_usuario=? AND activo=1;";
+            if (sqlite3_prepare_v2(db, sql_dni, -1, &stmt, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(stmt, 1, usuario, -1, SQLITE_STATIC);
+                if (sqlite3_step(stmt) == SQLITE_ROW)
+                    strncpy(dni_admin_sesion, (const char*)sqlite3_column_text(stmt, 0), sizeof(dni_admin_sesion) - 1);
+                sqlite3_finalize(stmt);
+            }
             return 1;
         } else {
             intentos--;

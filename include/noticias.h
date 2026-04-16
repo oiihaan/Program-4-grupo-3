@@ -14,6 +14,7 @@ void submenuNoticias();
 void mostrarTiempo();
 void noticia_publicar();
 void mostrarDeportes();
+void mostrarPolitica();
 void noticia_listar(); //Muestra todas las noticias, incluso las eliminadas
 void noticia_gestionar(); //Menu para editar o eliminar noticias
 

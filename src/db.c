@@ -272,7 +272,52 @@ void db_insertar_datos_prueba(){
     printf("*** Datos de prueba insertados correctamente ***\n\n");
 
     log_escribir("Se han insertado los datos de prueba en la base de datos");
+}
 
+void db_insertar_publicaciones_prueba() {
+    db_ejecutar("PRAGMA foreign_keys = OFF;");
 
+    /* --- DEPORTES --- */
+    db_ejecutar(
+        "INSERT INTO Publicacion (categoria, titulo, enlace, fecha_publicacion, estado) "
+        "VALUES ('Deportes', 'Real Sociedad disputara la final de la Copa del Rey el 18 de abril en Sevilla', "
+        "'https://www.diariovasco.com/real-sociedad/final-copa/', '2026-04-10', 'ACTIVA');"
+    );
+    db_ejecutar(
+        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
+        "VALUES ('Deportes', 'Baskonia golea al Barça y se acerca al liderato de la Liga ACB', '2026-04-08', 'ACTIVA');"
+    );
+    db_ejecutar(
+        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
+        "VALUES ('Deportes', 'Athletic Club clasifica para semifinales de la Europa League', '2026-04-05', 'ACTIVA');"
+    );
+    db_ejecutar(
+        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
+        "VALUES ('Deportes', 'La SD Eibar vuelve a Primera Division tras ganar el playoff de ascenso', '2026-04-03', 'ACTIVA');"
+    );
 
+    /* --- POLITICA --- */
+    db_ejecutar(
+        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
+        "VALUES ('Politica', 'Imanol Pradales presenta el plan de vivienda publica para Euskadi 2026-2030', '2026-04-09', 'ACTIVA');"
+    );
+    db_ejecutar(
+        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
+        "VALUES ('Politica', 'El PNV y el PSE-EE renuevan el acuerdo de gobierno para toda la legislatura', '2026-04-07', 'ACTIVA');"
+    );
+    db_ejecutar(
+        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
+        "VALUES ('Politica', 'Pello Otxandiano propone en el Parlamento Vasco una reforma fiscal para rentas altas', '2026-04-06', 'ACTIVA');"
+    );
+    db_ejecutar(
+        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
+        "VALUES ('Politica', 'El Parlamento Vasco aprueba los presupuestos generales para 2026 con mayoria absoluta', '2026-04-04', 'ACTIVA');"
+    );
+    db_ejecutar(
+        "INSERT INTO Publicacion (categoria, titulo, fecha_publicacion, estado) "
+        "VALUES ('Politica', 'Arnaldo Otegi reclama el acercamiento de presos vascos en el debate sobre pacificacion', '2026-04-02', 'ACTIVA');"
+    );
+
+    db_ejecutar("PRAGMA foreign_keys = ON;");
+    printf("[OK] Publicaciones de prueba creadas.\n");
 }

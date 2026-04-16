@@ -62,6 +62,18 @@ int main() {
         db_insertar_datos_prueba();
     }
 
+    // Seed de publicaciones: si la tabla esta vacia, insertar datos de prueba
+    int total_publicaciones = 0;
+    const char *sql_check_pub = "SELECT COUNT(*) FROM Publicacion;";
+    if (sqlite3_prepare_v2(db, sql_check_pub, -1, &stmt, NULL) == SQLITE_OK) {
+        if (sqlite3_step(stmt) == SQLITE_ROW)
+            total_publicaciones = sqlite3_column_int(stmt, 0);
+        sqlite3_finalize(stmt);
+    }
+    if (total_publicaciones == 0) {
+        db_insertar_publicaciones_prueba();
+    }
+
     // 4. Login
     if (!auth_login()) { 
         log_escribir("El sistema se ha apagado\n");
