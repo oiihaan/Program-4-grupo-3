@@ -133,6 +133,7 @@ void reservas_crear_Aciudadano() {
         limpiarBuffer();
     } while (!dni_es_valido(dni_ciudadano));
 
+    espacios_listar();
     printf("ID del espacio: ");
     scanf("%d", &id_espacio);
     getchar();  // Limpiar buffer

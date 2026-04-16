@@ -50,15 +50,14 @@ static int callback_mostrar_deportes(void *data, int cols, char **valores, char 
 {
     int *contador = (int *)data;
     const char *id = (valores[0] && valores[0][0]) ? valores[0] : "-";
-    const char *tipo = (valores[1] && valores[1][0]) ? valores[1] : "-";
-    const char *titulo = (valores[2] && valores[2][0]) ? valores[2] : "-";
-    const char *enlace = (valores[3] && valores[3][0]) ? valores[3] : "-";
-    const char *fecha = (valores[4] && valores[4][0]) ? valores[4] : "-";
-    const char *estado = (valores[5] && valores[5][0]) ? valores[5] : "-";
+    const char *titulo = (valores[1] && valores[1][0]) ? valores[1] : "-";
+    const char *enlace = (valores[2] && valores[2][0]) ? valores[2] : "-";
+    const char *fecha = (valores[3] && valores[3][0]) ? valores[3] : "-";
+    const char *estado = (valores[4] && valores[4][0]) ? valores[4] : "-";
 
     (*contador)++;
-    printf("  [%s] %-12s | %-30s | %-10s | %-8s\n",
-           id, tipo, titulo, fecha, estado);
+    printf("  [%s] %-30s | %-10s | %-8s\n",
+           id, titulo, fecha, estado);
     printf("      Enlace: %s\n", enlace);
     return 0;
 }
@@ -68,14 +67,13 @@ static int callback_listar_noticias(void *data, int cols, char **valores, char *
     int *contador = (int *)data;
     const char *id = (valores[0] && valores[0][0]) ? valores[0] : "-";
     const char *categoria = (valores[1] && valores[1][0]) ? valores[1] : "-";
-    const char *tipo = (valores[2] && valores[2][0]) ? valores[2] : "-";
-    const char *titulo = (valores[3] && valores[3][0]) ? valores[3] : "-";
-    const char *fecha = (valores[4] && valores[4][0]) ? valores[4] : "-";
-    const char *estado = (valores[5] && valores[5][0]) ? valores[5] : "-";
+    const char *titulo = (valores[2] && valores[2][0]) ? valores[2] : "-";
+    const char *fecha = (valores[3] && valores[3][0]) ? valores[3] : "-";
+    const char *estado = (valores[4] && valores[4][0]) ? valores[4] : "-";
 
     (*contador)++;
-    printf("  [%s] %-12s | %-12s | %-30s | %-10s | %-10s\n",
-           id, categoria, tipo, titulo, fecha, estado);
+    printf("  [%s] %-12s | %-30s | %-10s | %-10s\n",
+           id, categoria, titulo, fecha, estado);
     return 0;
 }
 
@@ -349,7 +347,6 @@ void mostrarTiempo()
 
 void noticia_publicar()
 {
-    char tipo[64];
     char categoria[64];
     char titulo[256];
     char enlace[256];
@@ -357,16 +354,6 @@ void noticia_publicar()
     char fecha_publicacion[32];
 
     printf("\n--- PUBLICAR NOTICIA ---\n");
-
-    do
-    {
-        printf("Tipo: ");
-        scanf(" %63[^\n]", tipo);
-        if (strlen(tipo) == 0)
-        {
-            printf("[ERROR] La categoria no puede estar vacia.\n");
-        }
-    } while (strlen(tipo) == 0);
 
     do
     {
@@ -411,18 +398,17 @@ void noticia_publicar()
     strftime(fecha_publicacion, sizeof(fecha_publicacion), "%Y-%m-%d", fecha);
 
     sqlite3_stmt *stmt;
-    const char *sql = "INSERT INTO Publicacion (tipo, categoria, titulo, enlace, dni_admin, fecha_publicacion, estado) "
-                      "VALUES (?, ?, ?, ?, ?, ?, 'ACTIVA');";
+    const char *sql = "INSERT INTO Publicacion (categoria, titulo, enlace, dni_admin, fecha_publicacion, estado) "
+                      "VALUES (?, ?, ?, ?, ?, 'ACTIVA');";
 
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK)
     {
         // Vinculamos cada variable al marcador '?' correspondiente
-        sqlite3_bind_text(stmt, 1, tipo, -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 2, categoria, -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 3, titulo, -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 4, enlace, -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 5, dni_admin, -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 6, fecha_publicacion, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 1, categoria, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, titulo, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 3, enlace, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 4, dni_admin, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 5, fecha_publicacion, -1, SQLITE_STATIC);
 
         if (sqlite3_step(stmt) == SQLITE_DONE)
         {
@@ -453,7 +439,7 @@ void mostrarDeportes()
     char *err = NULL;
     int total = 0;
     int resultado = sqlite3_exec(db,
-                                 "SELECT id_publicacion, tipo, titulo, enlace, fecha_publicacion, estado "
+                                 "SELECT id_publicacion, titulo, enlace, fecha_publicacion, estado "
                                  "FROM Publicacion "
                                  "WHERE categoria='Deportes' AND estado='ACTIVA';",
                                  callback_mostrar_deportes, &total, &err);
@@ -476,7 +462,7 @@ void noticia_listar()
     char *err = NULL;
     int total = 0;
     int resultado = sqlite3_exec(db,
-                                 "SELECT id_publicacion, categoria, tipo, titulo, fecha_publicacion, estado "
+                                 "SELECT id_publicacion, categoria, titulo, fecha_publicacion, estado "
                                  "FROM Publicacion;",
                                  callback_listar_noticias, &total, &err);
 
@@ -539,10 +525,9 @@ void noticia_gestionar()
         while (editando)
         {
             printf("\n--- CAMPO A EDITAR (noticia ID %d) ---\n", id);
-            printf("1. Tipo\n");
-            printf("2. Categoria\n");
-            printf("3. Titulo\n");
-            printf("4. Enlace\n");
+            printf("1. Categoria\n");
+            printf("2. Titulo\n");
+            printf("3. Enlace\n");
             printf("0. Terminar edicion\n");
             printf("Seleccion: ");
 
@@ -563,21 +548,16 @@ void noticia_gestionar()
             switch (campo)
             {
             case 1:
-                printf("Nuevo tipo: ");
-                nombre_campo_sql = "tipo";
-                nombre_campo_log = "tipo";
-                break;
-            case 2:
                 printf("Nueva categoria: ");
                 nombre_campo_sql = "categoria";
                 nombre_campo_log = "categoria";
                 break;
-            case 3:
+            case 2:
                 printf("Nuevo titulo: ");
                 nombre_campo_sql = "titulo";
                 nombre_campo_log = "titulo";
                 break;
-            case 4:
+            case 3:
                 printf("Nuevo enlace: ");
                 nombre_campo_sql = "enlace";
                 nombre_campo_log = "enlace";

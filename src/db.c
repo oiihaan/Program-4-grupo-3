@@ -75,7 +75,6 @@ void db_crear_tablas() {
     db_ejecutar(
         "CREATE TABLE IF NOT EXISTS Publicacion ("
         "id_publicacion INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "tipo TEXT,"
         "categoria TEXT,"
         "titulo TEXT,"
         "enlace TEXT,"
