@@ -8,7 +8,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <iostream>
 
 #define MAXDATASIZE 1024
 
@@ -22,11 +21,12 @@ void *get_in_addr(struct sockaddr *sa)
 
 extern "C" int usuario_conectar(const char *ip, const char *port)
 {
-    int sockfd, numbytes;
-    char buf[MAXDATASIZE];
+    int sockfd;
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
+
+    printf("\n=== INICIANDO CONEXIÓN CON SOCKET ===\n");
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -34,7 +34,8 @@ extern "C" int usuario_conectar(const char *ip, const char *port)
 
     if ((rv = getaddrinfo(ip, port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
+        printf("=== ERROR: No se pudo resolver dirección ===\n\n");
+        return -1;
     }
 
     for(p = servinfo; p != NULL; p = p->ai_next) {
@@ -44,7 +45,7 @@ extern "C" int usuario_conectar(const char *ip, const char *port)
         }
 
         inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
-        printf("Intentando conectarse a %s...\n", s);
+        printf("Intentando conectarse a %s:%s...\n", s, port);
 
         if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
             perror("connect");
@@ -56,56 +57,52 @@ extern "C" int usuario_conectar(const char *ip, const char *port)
     }
 
     if (p == NULL) {
-        fprintf(stderr, "Error: no se pudo conectar al servidor\n");
-        return 2;
+        fprintf(stderr, "=== ERROR: No se pudo conectar al servidor ===\n\n");
+        freeaddrinfo(servinfo);
+        return -1;
     }
-    
 
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
-    printf("Conectado al servidor en %s:%s\n\n", s, port);
+    printf("✓ Conectado al servidor en %s:%s\n", s, port);
+    printf("=== CONEXIÓN ESTABLECIDA ===\n\n");
 
     freeaddrinfo(servinfo);
 
-    while (1) {
-        printf("Ingrese comando (o 'exit' para salir): ");
-        fflush(stdout);
+    return sockfd;
+}
 
-        char buffer[MAXDATASIZE];
-        memset(buffer, 0, MAXDATASIZE);
-
-        if (fgets(buffer, MAXDATASIZE, stdin) == NULL) {
-            break;
-        }
-
-        buffer[strcspn(buffer, "\n")] = 0;
-
-        if (strcmp(buffer, "exit") == 0) {
-            printf("Desconectando...\n");
-            break;
-        }
-
-        if (send(sockfd, buffer, strlen(buffer), 0) == -1) {
-            perror("send");
-            break;
-        }
-
-        memset(buf, 0, MAXDATASIZE);
-        numbytes = recv(sockfd, buf, MAXDATASIZE - 1, 0);
-
-        if (numbytes == -1) {
-            perror("recv");
-            break;
-        }
-
-        if (numbytes == 0) {
-            printf("Servidor cerró la conexión\n");
-            break;
-        }
-
-        buf[numbytes] = '\0';
-        printf("Respuesta del servidor: %s\n\n", buf);
+extern "C" int usuario_enviar_recibir(int sockfd, const char *comando, char *respuesta, int max_size)
+{
+    if (sockfd == -1) {
+        fprintf(stderr, "Error: socket no válido\n");
+        return -1;
     }
 
-    close(sockfd);
-    return 0;
+    if (send(sockfd, comando, strlen(comando), 0) == -1) {
+        perror("send");
+        return -1;
+    }
+
+    int numbytes = recv(sockfd, respuesta, max_size - 1, 0);
+
+    if (numbytes == -1) {
+        perror("recv");
+        return -1;
+    }
+
+    if (numbytes == 0) {
+        printf("Servidor cerró la conexión\n");
+        return 0;
+    }
+
+    respuesta[numbytes] = '\0';
+    return numbytes;
+}
+
+extern "C" void usuario_cerrar(int sockfd)
+{
+    if (sockfd != -1) {
+        close(sockfd);
+        printf("Conexión con servidor cerrada\n");
+    }
 }

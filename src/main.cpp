@@ -19,6 +19,7 @@ extern "C" {
 #define IP "127.0.0.1"
 
 extern sqlite3 *db;
+int usuario_socket = -1;
 
 
 
@@ -38,9 +39,7 @@ int main() {
     // tablas
     db_crear_tablas();
 
-    printf("\n=== INICIANDO CONEXIÓN CON SOCKET ===\n");
-    usuario_conectar(IP, PORT);
-    printf("=== CONEXIÓN FINALIZADA ===\n\n");
+    usuario_socket = usuario_conectar(IP, PORT);
 
     // --- CORRECCIÓN: DECLARACIÓN DE VARIABLES ---
     sqlite3_stmt *stmt;
@@ -119,6 +118,7 @@ int main() {
     } while (opcion != 0);
 
     log_escribir("El sistema se ha apagado\n");
+    usuario_cerrar(usuario_socket);
     curl_global_cleanup();
     db_cerrar();
     return 0;
