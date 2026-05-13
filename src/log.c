@@ -24,7 +24,7 @@ char* log_get_usuario() {
     return usuario_sesion;
 }
 
-void log_escribir(char *accion) {
+void log_escribir(const char *accion) {
     const char *usuario = log_get_usuario();
     FILE *f = abrirLog();
  
@@ -38,7 +38,7 @@ void log_escribir(char *accion) {
     fclose(f);
 }
 
-void log_login_escribir(const char *usuario, char *accion){
+void log_login_escribir(const char *usuario, const char *accion){
 
     FILE *f = abrirLog();
  

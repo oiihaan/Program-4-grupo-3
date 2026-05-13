@@ -32,3 +32,6 @@ DISTRIB_DIRECTORIOS.txt
 .vs/
 *.user
 *.suo
+
+# --- IA
+*.claude

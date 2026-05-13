@@ -1,19 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
+
+extern "C" {
 #include "../include/funciones.h"
 #include "../include/espacios.h"
 #include "../include/noticias.h"
 #include "../include/licencias.h"
 #include "../include/config.h"
 #include "../include/db.h"
-#include "../include/config.h"
+#include "../include/usuario.h"
 #include "../include/auth.h"
 #include "../include/log.h"
-
+}
 
 //INCLUDEs para cURL (lo de la API del tiempo)
 #include <curl/curl.h>
-#include "../include/noticias.h"
+#define PORT "5555"
+#define IP "127.0.0.1"
 
 extern sqlite3 *db;
 
@@ -34,6 +37,10 @@ int main() {
     
     // tablas
     db_crear_tablas();
+
+    printf("\n=== INICIANDO CONEXIÓN CON SOCKET ===\n");
+    usuario_conectar(IP, PORT);
+    printf("=== CONEXIÓN FINALIZADA ===\n\n");
 
     // --- CORRECCIÓN: DECLARACIÓN DE VARIABLES ---
     sqlite3_stmt *stmt;
