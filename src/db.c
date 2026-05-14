@@ -42,10 +42,10 @@ void db_crear_tablas() {
 );
 
     db_ejecutar(
-    "CREATE TABLE IF NOT EXISTS Usuario ("
-    "id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,"
+    "CREATE TABLE IF NOT EXISTS Cliente ("
+    "id_cliente INTEGER PRIMARY KEY AUTOINCREMENT,"
     "dni TEXT UNIQUE NOT NULL,"
-    "nombre_usuario TEXT NOT NULL,"
+    "nombre_cliente TEXT NOT NULL,"
     "password TEXT NOT NULL,"
     "edad INTEGER,"
     "activo INTEGER DEFAULT 1,"
@@ -120,7 +120,7 @@ void db_crear_tablas() {
 
     // // FUNCION AUXILIAR PARA HACER PRUEBAS CON LA BD
     // db_ejecutar(
-    //     "INSERT OR IGNORE INTO Admin (dni, nombre_usuario, password, activo) "
+    //     "INSERT OR IGNORE INTO Admin (dni, nombre_cliente, password, activo) "
     //     "VALUES ('12345678A', 'admin', '1234', 1);"
     // );
     printf("[OK] Tablas creadas/verificadas.\n");

@@ -3,20 +3,10 @@
 #include "../include/config.h"
 #include "../include/funciones.h"
 #include "../include/log.h"
+#include "../include/sha256.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "sha256.h"
-
-#include "../include/auth.h"
-#include "../include/db.h"
-#include "../include/config.h"
-#include "../include/funciones.h"
-#include "../include/log.h"
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include "sha256.h"
 
 char dni_admin_sesion[32] = "";
 
@@ -47,6 +37,7 @@ void admin_registrar_nuevo() {
         printf("DNI: "); scanf("%31s", dni); limpiarBuffer();
     } while (!dni_es_valido(dni));
     printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
+    
     printf("Contraseña: "); scanf("%63s", password_plano); limpiarBuffer();
 
     sqlite3_stmt *stmt;
@@ -102,9 +93,32 @@ int auth_login() {
     printf("=========================================\n");
 
     while (intentos > 0) {
-        printf("\nUsuario: ");
-        scanf("%63s", usuario);
-        limpiarBuffer();
+        int usuario_existe = 0;
+        do {
+            printf("\nUsuario: ");
+            scanf("%63s", usuario);
+            limpiarBuffer();
+
+            sqlite3_stmt *stmt_validar;
+            const char *sql_validar =
+                "SELECT 1 FROM Admin WHERE nombre_usuario = ? AND activo = 1 "
+                "UNION "
+                "SELECT 1 FROM Cliente WHERE nombre_cliente = ? AND activo = 1;";
+
+            if (sqlite3_prepare_v2(db, sql_validar, -1, &stmt_validar, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(stmt_validar, 1, usuario, -1, SQLITE_STATIC);
+                sqlite3_bind_text(stmt_validar, 2, usuario, -1, SQLITE_STATIC);
+                if (sqlite3_step(stmt_validar) == SQLITE_ROW) {
+                    usuario_existe = 1;
+                }
+                sqlite3_finalize(stmt_validar);
+            }
+
+            if (!usuario_existe) {
+                printf("[ERROR] Usuario no encontrado. Intente de nuevo.\n");
+            }
+        } while (!usuario_existe);
+
         password = capturar_contrasena();
 
         if (password == NULL) {
