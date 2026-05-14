@@ -42,6 +42,18 @@ void db_crear_tablas() {
 );
 
     db_ejecutar(
+    "CREATE TABLE IF NOT EXISTS Usuario ("
+    "id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,"
+    "dni TEXT UNIQUE NOT NULL,"
+    "nombre_usuario TEXT NOT NULL,"
+    "password TEXT NOT NULL,"
+    "edad INTEGER,"
+    "activo INTEGER DEFAULT 1,"
+    "fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP"
+    ");"
+);
+
+    db_ejecutar(
         "CREATE TABLE IF NOT EXISTS Espacio ("
         "id_espacio INTEGER PRIMARY KEY AUTOINCREMENT,"
         "nombre TEXT NOT NULL UNIQUE,"
