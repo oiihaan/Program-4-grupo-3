@@ -8,7 +8,7 @@ extern "C" {
 #include "../include/licencias.h"
 #include "../include/config.h"
 #include "../include/db.h"
-#include "../include/usuario.h"
+#include "../include/cliente.h"
 #include "../include/auth.h"
 #include "../include/log.h"
 }
@@ -39,7 +39,7 @@ int main() {
     // tablas
     db_crear_tablas();
 
-    usuario_socket = usuario_conectar(IP, PORT);
+    usuario_socket = cliente_conectar(IP, PORT);
 
     // --- CORRECCIÓN: DECLARACIÓN DE VARIABLES ---
     sqlite3_stmt *stmt;
@@ -118,7 +118,7 @@ int main() {
     } while (opcion != 0);
 
     log_escribir("El sistema se ha apagado\n");
-    usuario_cerrar(usuario_socket);
+    cliente_cerrar(usuario_socket);
     curl_global_cleanup();
     db_cerrar();
     return 0;

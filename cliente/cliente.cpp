@@ -8,8 +8,11 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include "../include/cliente.h"
 
 #define MAXDATASIZE 1024
+
+using namespace cliente;
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -19,7 +22,45 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-extern "C" int usuario_conectar(const char *ip, const char *port)
+// Implementación del Constructor
+Cliente::Cliente(int id, int edad, const char* nombre_cliente, const char* contrasena, const char* licencias) {
+    this->id = id;
+    this->edad = edad;
+    this->nombre_cliente = (char*)malloc(strlen(nombre_cliente) + 1);
+    strcpy(this->nombre_cliente, nombre_cliente);
+    this->contrasena = (char*)malloc(strlen(contrasena) + 1);
+    strcpy(this->contrasena, contrasena);
+    this->licencias = (char*)malloc(strlen(licencias) + 1);
+    strcpy(this->licencias, licencias);
+}
+
+// Implementación del Constructor Copia
+Cliente::Cliente(const Cliente& otro) {
+    this->id = otro.id;
+    this->edad = otro.edad;
+    this->nombre_cliente = (char*)malloc(strlen(otro.nombre_cliente) + 1);
+    strcpy(this->nombre_cliente, otro.nombre_cliente);
+    this->contrasena = (char*)malloc(strlen(otro.contrasena) + 1);
+    strcpy(this->contrasena, otro.contrasena);
+    this->licencias = (char*)malloc(strlen(otro.licencias) + 1);
+    strcpy(this->licencias, otro.licencias);
+}
+
+// Implementación del Destructor
+Cliente::~Cliente() {
+    free(nombre_cliente);
+    free(contrasena);
+    free(licencias);
+}
+
+// Implementación de Getters
+int Cliente::getId() const { return id; }
+int Cliente::getEdad() const { return edad; }
+const char* Cliente::getNombreCliente() const { return nombre_cliente; }
+const char* Cliente::getContrasena() const { return contrasena; }
+const char* Cliente::getLicencias() const { return licencias; }
+
+extern "C" int cliente_conectar(const char *ip, const char *port)
 {
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
@@ -71,7 +112,7 @@ extern "C" int usuario_conectar(const char *ip, const char *port)
     return sockfd;
 }
 
-extern "C" int usuario_enviar_recibir(int sockfd, const char *comando, char *respuesta, int max_size)
+extern "C" int cliente_enviar_recibir(int sockfd, const char *comando, char *respuesta, int max_size)
 {
     if (sockfd == -1) {
         fprintf(stderr, "Error: socket no válido\n");
@@ -99,7 +140,7 @@ extern "C" int usuario_enviar_recibir(int sockfd, const char *comando, char *res
     return numbytes;
 }
 
-extern "C" void usuario_cerrar(int sockfd)
+extern "C" void cliente_cerrar(int sockfd)
 {
     if (sockfd != -1) {
         close(sockfd);

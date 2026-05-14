@@ -65,42 +65,42 @@ int main(void) {
     while (1) {
         struct sockaddr_storage addr;
         socklen_t addrlen = sizeof addr;
-        int usuario_fd = -1;
+        int cliente_fd = -1;
 
-        printf("Esperando usuario...\n");
-        usuario_fd = accept(sockfd, (struct sockaddr*)&addr, &addrlen);
-        if (usuario_fd == -1) {
-             perror("accept usuario");
+        printf("Esperando cliente...\n");
+        cliente_fd = accept(sockfd, (struct sockaddr*)&addr, &addrlen);
+        if (cliente_fd == -1) {
+             perror("accept cliente");
              continue;
         }
         inet_ntop(addr.ss_family, get_in_addr((struct sockaddr*)&addr), addrstr, sizeof addrstr);
-        printf("Usuario conectado desde %s fd=%d\n", addrstr, usuario_fd);
+        printf("cliente conectado desde %s fd=%d\n", addrstr, cliente_fd);
 
         char buffer[MAXDATASIZE];
         memset(buffer, 0, MAXDATASIZE);
         int recibido;
 
         while (1) {
-            recibido = recv(usuario_fd, buffer, MAXDATASIZE - 1, 0);
+            recibido = recv(cliente_fd, buffer, MAXDATASIZE - 1, 0);
             if (recibido == -1) {
-                perror("recv usuario");
+                perror("recv cliente");
                 break;
             } else if (recibido == 0) {
-                printf("Usuario cerró la conexión\n");
+                printf("cliente cerró la conexión\n");
                 break;
             } else {
                 buffer[recibido] = '\0';
                 printf("Mensaje recibido: %s\n", buffer);
 
                 if (strcmp(buffer, "exit") == 0) {
-                    printf("Usuario solicitó cerrar la conexión\n");
+                    printf("cliente solicitó cerrar la conexión\n");
                     break;
                 }
             }
             memset(buffer, 0, MAXDATASIZE);
         }
 
-        close(usuario_fd);
+        close(cliente_fd);
         printf("Servidor: conexión cerrada\n");
     }
 

@@ -4,8 +4,8 @@ CXX = g++
 CFLAGS = -Iinclude $(SQLITE_CFLAGS) $(CURL_CFLAGS)
 CXXFLAGS = -Iinclude $(SQLITE_CFLAGS) $(CURL_CFLAGS)
 LIBS = $(SQLITE_LIBS) $(CURL_LIBS)
-C_SRC = $(wildcard src/*.c)
-CPP_SRC = $(wildcard src/*.cpp)
+C_SRC = $(wildcard admin/*.c) $(wildcard src/*.c)
+CPP_SRC = src/main.cpp cliente/cliente.cpp
 C_OBJ = $(C_SRC:.c=.o)
 CPP_OBJ = $(CPP_SRC:.cpp=.o)
 OUT = build/main.exe
@@ -37,6 +37,6 @@ run: all
 
 # Regla para limpiar los archivos generados
 clean:
-	rm -f src/*.o $(OUT)
+	rm -f admin/*.o src/*.o cliente/*.o $(OUT)
 
 .PHONY: all run clean
