@@ -83,10 +83,13 @@ void admin_registrar_nuevo() {
     }
 }
 
+
+
 int auth_login() {
     char usuario[64];
     char *password;
     int intentos = definir_intentos();
+    int registrar = 0;
     printf("\n\n");
     printf("=========================================\n");
     printf(">>> INICIO DE SESION DEL AYUNTAMIENTO <<<\n");
@@ -115,6 +118,17 @@ int auth_login() {
             }
 
             if (!usuario_existe) {
+                if (!registrar) {
+                    printf("Desea registrarse en el sistema? (y/n): ");
+                    registrar++; //
+                    char respuesta;
+                    scanf(" %c", &respuesta);
+                    limpiarBuffer();
+                    if (respuesta == 'y' || respuesta == 'Y') {
+                        cliente_registrar_nuevo();
+                        return auth_login(); // Reintentar login después de registrar
+                    }
+                }
                 printf("[ERROR] Usuario no encontrado. Intente de nuevo.\n");
             }
         } while (!usuario_existe);
@@ -126,31 +140,52 @@ int auth_login() {
             continue;
         }
 
-        // 1. Modificamos la consulta: Obtenemos el hash y la fecha para ese usuario
+        // Buscar en Admin
         sqlite3_stmt *stmt;
-        const char *sql =
+        const char *sql_admin =
             "SELECT password, fecha_creacion FROM Admin "
             "WHERE nombre_usuario=? AND activo=1;";
 
         int autenticado = 0;
-        if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK) {
+        if (sqlite3_prepare_v2(db, sql_admin, -1, &stmt, NULL) == SQLITE_OK) {
             sqlite3_bind_text(stmt, 1, usuario, -1, SQLITE_STATIC);
-            
+
             if (sqlite3_step(stmt) == SQLITE_ROW) {
-                // Recuperamos el hash almacenado y la sal (fecha)
                 const char *hash_db = (const char *)sqlite3_column_text(stmt, 0);
                 const char *fecha_db = (const char *)sqlite3_column_text(stmt, 1);
 
-                // 2. Generamos el hash de la contraseña introducida usando la fecha de la DB
                 char hash_calculado[65];
                 auth_generar_hash(password, fecha_db, hash_calculado);
 
-                // 3. Comparamos los hashes
                 if (strcmp(hash_db, hash_calculado) == 0) {
                     autenticado = 1;
                 }
             }
             sqlite3_finalize(stmt);
+        }
+
+        // Si no autenticado en Admin, buscar en Cliente
+        if (!autenticado) {
+            const char *sql_cliente =
+                "SELECT password, fecha_creacion FROM Cliente "
+                "WHERE nombre_cliente=? AND activo=1;";
+
+            if (sqlite3_prepare_v2(db, sql_cliente, -1, &stmt, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(stmt, 1, usuario, -1, SQLITE_STATIC);
+
+                if (sqlite3_step(stmt) == SQLITE_ROW) {
+                    const char *hash_db = (const char *)sqlite3_column_text(stmt, 0);
+                    const char *fecha_db = (const char *)sqlite3_column_text(stmt, 1);
+
+                    char hash_calculado[65];
+                    auth_generar_hash(password, fecha_db, hash_calculado);
+
+                    if (strcmp(hash_db, hash_calculado) == 0) {
+                        autenticado = 1;
+                    }
+                }
+                sqlite3_finalize(stmt);
+            }
         }
 
         log_escribir("Ha buscado en la base de datos");

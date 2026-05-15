@@ -10,11 +10,18 @@
 #include <arpa/inet.h>
 #include "../include/cliente.h"
 
+extern "C" {
+#include "../include/funciones.h"
+}
+
 #define MAXDATASIZE 1024
 
 using namespace cliente;
 
-void *get_in_addr(struct sockaddr *sa)
+// Variable global para almacenar el socket del cliente
+int g_cliente_socket = -1;
+
+static void *get_in_addr(struct sockaddr *sa)
 {
     if (sa->sa_family == AF_INET) {
         return &(((struct sockaddr_in*)sa)->sin_addr);
@@ -119,9 +126,15 @@ extern "C" int cliente_enviar_recibir(int sockfd, const char *comando, char *res
         return -1;
     }
 
-    if (send(sockfd, comando, strlen(comando), 0) == -1) {
-        perror("send");
-        return -1;
+    size_t total = strlen(comando);
+    size_t enviados = 0;
+    while (enviados < total) {
+        ssize_t n = send(sockfd, comando + enviados, total - enviados, 0);
+        if (n == -1) {
+            perror("send");
+            return -1;
+        }
+        enviados += (size_t)n;
     }
 
     int numbytes = recv(sockfd, respuesta, max_size - 1, 0);
@@ -145,5 +158,78 @@ extern "C" void cliente_cerrar(int sockfd)
     if (sockfd != -1) {
         close(sockfd);
         printf("Conexión con servidor cerrada\n");
+    }
+}
+
+extern "C" void cliente_set_socket(int sockfd) {
+    g_cliente_socket = sockfd;
+}
+
+extern "C" int cliente_login() {
+    char usuario[64], password[64];
+    char comando[256], respuesta[256];
+
+    if (g_cliente_socket == -1) {
+        printf("[ERROR] Socket no establecido. Debe conectarse al servidor primero.\n");
+        return 0;
+    }
+
+    printf("\n--- LOGIN DE CLIENTE ---\n");
+    printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
+    printf("Contraseña: "); scanf("%63s", password); limpiarBuffer();
+
+    snprintf(comando, sizeof(comando), "LOGIN|%s|%s\n", usuario, password);
+
+    if (cliente_enviar_recibir(g_cliente_socket, comando, respuesta, sizeof(respuesta)) > 0) {
+        if (strncmp(respuesta, "OK", 2) == 0) {
+            printf("[OK] Bienvenido, %s!\n", usuario);
+            return 1;
+        } else if (strncmp(respuesta, "USER_NOT_FOUND", 14) == 0) {
+            printf("[ERROR] Usuario no encontrado.\n");
+            printf("¿Desea registrarse? (y/n): ");
+            char opcion;
+            scanf(" %c", &opcion);
+            limpiarBuffer();
+            if (opcion == 'y' || opcion == 'Y') {
+                cliente_registrar_nuevo();
+                return cliente_login();
+            }
+            return 0;
+        } else {
+            printf("[ERROR] %s\n", respuesta);
+            return 0;
+        }
+    } else {
+        printf("[ERROR] Fallo en la comunicación con el servidor.\n");
+        return 0;
+    }
+}
+
+extern "C" void cliente_registrar_nuevo() {
+    char dni[32], usuario[64], password_plano[64];
+    char comando[256], respuesta[256];
+
+    if (g_cliente_socket == -1) {
+        printf("[ERROR] Socket no establecido. Debe conectarse al servidor primero.\n");
+        return;
+    }
+
+    printf("\n--- REGISTRO DE NUEVO CLIENTE ---\n");
+    do {
+        printf("DNI: "); scanf("%31s", dni); limpiarBuffer();
+    } while (!dni_es_valido(dni));
+    printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
+    printf("Contraseña: "); scanf("%63s", password_plano); limpiarBuffer();
+
+    snprintf(comando, sizeof(comando), "REGISTER_CLIENTE|%s|%s|%s\n", dni, usuario, password_plano);
+
+    if (cliente_enviar_recibir(g_cliente_socket, comando, respuesta, sizeof(respuesta)) > 0) {
+        if (strncmp(respuesta, "OK", 2) == 0) {
+            printf("[OK] Cliente creado exitosamente. Intente login nuevamente.\n");
+        } else {
+            printf("[ERROR] %s\n", respuesta);
+        }
+    } else {
+        printf("[ERROR] Fallo en la comunicación con el servidor.\n");
     }
 }

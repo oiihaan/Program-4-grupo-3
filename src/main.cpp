@@ -40,6 +40,9 @@ int main() {
     db_crear_tablas();
 
     usuario_socket = cliente_conectar(IP, PORT);
+    if (usuario_socket != -1) {
+        cliente_set_socket(usuario_socket);
+    }
 
     // --- CORRECCIÓN: DECLARACIÓN DE VARIABLES ---
     sqlite3_stmt *stmt;

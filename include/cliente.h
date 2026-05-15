@@ -30,6 +30,9 @@ extern "C" {
 int cliente_conectar(const char *ip, const char *port);
 int cliente_enviar_recibir(int sockfd, const char *comando, char *respuesta, int max_size);
 void cliente_cerrar(int sockfd);
+void cliente_set_socket(int sockfd);
+int cliente_login();
+void cliente_registrar_nuevo();
 
 #ifdef __cplusplus
 }
