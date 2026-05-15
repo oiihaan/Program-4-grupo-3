@@ -89,7 +89,6 @@ int auth_login() {
     char usuario[64];
     char *password;
     int intentos = definir_intentos();
-    int registrar = 0;
     printf("\n\n");
     printf("=========================================\n");
     printf(">>> INICIO DE SESION DEL AYUNTAMIENTO <<<\n");
@@ -118,19 +117,8 @@ int auth_login() {
             }
 
             if (!usuario_existe) {
-                if (!registrar) {
-                    printf("Desea registrarse en el sistema? (y/n): ");
-                    registrar++; //
-                    char respuesta;
-                    scanf(" %c", &respuesta);
-                    limpiarBuffer();
-                    if (respuesta == 'y' || respuesta == 'Y') {
-                        cliente_registrar_nuevo();
-                        return auth_login(); // Reintentar login después de registrar
-                    }
-                }
                 printf("[ERROR] Usuario no encontrado. Intente de nuevo.\n");
-            }
+}
         } while (!usuario_existe);
 
         password = capturar_contrasena();

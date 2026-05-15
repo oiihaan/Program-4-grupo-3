@@ -1,51 +1,61 @@
-# Variables para que sea más fácil de leer
+# Variables
 CC = gcc
 CXX = g++
-CFLAGS = -Iinclude $(SQLITE_CFLAGS) $(CURL_CFLAGS)
-CXXFLAGS = -Iinclude $(SQLITE_CFLAGS) $(CURL_CFLAGS)
-LIBS = $(SQLITE_LIBS) $(CURL_LIBS)
-C_SRC = $(wildcard admin/*.c) $(wildcard src/*.c)
-CPP_SRC = src/main.cpp cliente/cliente.cpp
-C_OBJ = $(C_SRC:.c=.o)
-CPP_OBJ = $(CPP_SRC:.cpp=.o)
-OUT = build/main.exe
-SERVER_SRC = server/server.cpp
-SERVER_OUT = build/server.exe
-BUILD_DIR = build
-SQLITE_LIBS ?= -lsqlite3
-CURL_LIBS ?= -lcurl
+CFLAGS = -Iinclude
+CXXFLAGS = -Iinclude
+LIBS = -lsqlite3 -lcurl
 
-# Regla principal
-all: $(BUILD_DIR) $(OUT)
-server: $(BUILD_DIR) $(SERVER_OUT)
+# Archivos comunes (db, log, auth, sha256, utils, funciones)
+C_COMMON = src/auth.c src/db.c src/funciones.c src/log.c src/sa256.c src/utils.c
+
+# Admin: archivos comunes + módulos de admin
+ADMIN_C   = $(C_COMMON) $(wildcard admin/*.c)
+ADMIN_CPP = src/main.cpp
+ADMIN_OBJ = $(ADMIN_C:.c=.o) $(ADMIN_CPP:.cpp=.o)
+
+# Servidor
+SERVER_C   = $(C_COMMON) admin/config.c
+SERVER_CPP = server/server.cpp
+SERVER_OBJ = $(SERVER_C:.c=.o) $(SERVER_CPP:.cpp=.o)
+
+# Cliente
+CLIENT_C   = src/funciones.c src/log.c
+CLIENT_CPP = cliente/cliente.cpp cliente/main_cliente.cpp
+CLIENT_OBJ = $(CLIENT_C:.c=.o) $(CLIENT_CPP:.cpp=.o)
+
+BUILD_DIR = build
+
+# Reglas
+all: $(BUILD_DIR) build/main.exe build/servidor.exe build/cliente.exe
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# Compilar archivos .c con gcc
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Compilar archivos .cpp con g++
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Linkear todo con g++
-$(OUT): $(C_OBJ) $(CPP_OBJ)
-	$(CXX) $(C_OBJ) $(CPP_OBJ) $(LIBS) -o $(OUT)
+build/main.exe: $(ADMIN_OBJ)
+	$(CXX) $(ADMIN_OBJ) $(LIBS) -o $@
 
-$(SERVER_OUT): $(C_OBJ) cliente/cliente.o $(SERVER_SRC)
-	$(CXX) -Iinclude $(SERVER_SRC) $(C_OBJ) cliente/cliente.o $(LIBS) -o $(SERVER_OUT)
+build/servidor.exe: $(SERVER_OBJ)
+	$(CXX) $(SERVER_OBJ) $(LIBS) -o $@
 
-# Regla para ejecutar (el famoso make run)
-run: all
-	./$(OUT)
+build/cliente.exe: $(CLIENT_OBJ)
+	$(CXX) $(CLIENT_OBJ) $(LIBS) -o $@
 
-run-server: server
-	./$(SERVER_OUT)
+run: build/main.exe
+	./build/main.exe
 
-# Regla para limpiar los archivos generados
+run-server: build/servidor.exe
+	./build/servidor.exe
+
+run-cliente: build/cliente.exe
+	./build/cliente.exe
+
 clean:
-	rm -f admin/*.o src/*.o cliente/*.o $(OUT) $(SERVER_OUT)
+	rm -f src/*.o admin/*.o server/*.o cliente/*.o build/*.exe
 
-.PHONY: all server run run-server clean
+.PHONY: all run run-server run-cliente clean

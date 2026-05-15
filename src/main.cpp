@@ -8,18 +8,14 @@ extern "C" {
 #include "../include/licencias.h"
 #include "../include/config.h"
 #include "../include/db.h"
-#include "../include/cliente.h"
 #include "../include/auth.h"
 #include "../include/log.h"
 }
 
 //INCLUDEs para cURL (lo de la API del tiempo)
 #include <curl/curl.h>
-#define PORT "5555"
-#define IP "127.0.0.1"
 
 extern sqlite3 *db;
-int usuario_socket = -1;
 
 
 
@@ -38,11 +34,6 @@ int main() {
     
     // tablas
     db_crear_tablas();
-
-    usuario_socket = cliente_conectar(IP, PORT);
-    if (usuario_socket != -1) {
-        cliente_set_socket(usuario_socket);
-    }
 
     // --- CORRECCIÓN: DECLARACIÓN DE VARIABLES ---
     sqlite3_stmt *stmt;
@@ -121,7 +112,6 @@ int main() {
     } while (opcion != 0);
 
     log_escribir("El sistema se ha apagado\n");
-    cliente_cerrar(usuario_socket);
     curl_global_cleanup();
     db_cerrar();
     return 0;
