@@ -14,7 +14,7 @@ extern "C" {
 #include "../include/funciones.h"
 }
 
-#define MAXDATASIZE 1024
+#define MAXDATASIZE 4096
 
 using namespace cliente;
 
@@ -126,31 +126,31 @@ extern "C" int cliente_enviar_recibir(int sockfd, const char *comando, char *res
         return -1;
     }
 
+    // Enviar comando completo (bucle por si send() no envía todo de golpe)
     size_t total = strlen(comando);
     size_t enviados = 0;
     while (enviados < total) {
         ssize_t n = send(sockfd, comando + enviados, total - enviados, 0);
-        if (n == -1) {
-            perror("send");
-            return -1;
-        }
+        if (n == -1) { perror("send"); return -1; }
         enviados += (size_t)n;
     }
 
-    int numbytes = recv(sockfd, respuesta, max_size - 1, 0);
-
-    if (numbytes == -1) {
-        perror("recv");
-        return -1;
+    // Recibir acumulando hasta encontrar el terminador \nEND
+    int total_recibido = 0;
+    while (total_recibido < max_size - 1) {
+        int n = recv(sockfd, respuesta + total_recibido, max_size - 1 - total_recibido, 0);
+        if (n == -1) { perror("recv"); return -1; }
+        if (n == 0)  { printf("Servidor cerró la conexión\n"); return 0; }
+        total_recibido += n;
+        respuesta[total_recibido] = '\0';
+        if (strstr(respuesta, "\nEND") != NULL) break;
     }
 
-    if (numbytes == 0) {
-        printf("Servidor cerró la conexión\n");
-        return 0;
-    }
+    // Eliminar el terminador antes de devolver al llamador
+    char *end_marker = strstr(respuesta, "\nEND");
+    if (end_marker) *end_marker = '\0';
 
-    respuesta[numbytes] = '\0';
-    return numbytes;
+    return total_recibido;
 }
 
 extern "C" void cliente_cerrar(int sockfd)

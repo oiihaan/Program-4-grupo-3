@@ -103,13 +103,10 @@ int auth_login() {
 
             sqlite3_stmt *stmt_validar;
             const char *sql_validar =
-                "SELECT 1 FROM Admin WHERE nombre_usuario = ? AND activo = 1 "
-                "UNION "
-                "SELECT 1 FROM Cliente WHERE nombre_cliente = ? AND activo = 1;";
+                "SELECT 1 FROM Admin WHERE nombre_usuario = ? AND activo = 1;";
 
             if (sqlite3_prepare_v2(db, sql_validar, -1, &stmt_validar, NULL) == SQLITE_OK) {
                 sqlite3_bind_text(stmt_validar, 1, usuario, -1, SQLITE_STATIC);
-                sqlite3_bind_text(stmt_validar, 2, usuario, -1, SQLITE_STATIC);
                 if (sqlite3_step(stmt_validar) == SQLITE_ROW) {
                     usuario_existe = 1;
                 }
@@ -117,8 +114,8 @@ int auth_login() {
             }
 
             if (!usuario_existe) {
-                printf("[ERROR] Usuario no encontrado. Intente de nuevo.\n");
-}
+                printf("[ERROR] Usuario administrador no encontrado. Intente de nuevo.\n");
+            }
         } while (!usuario_existe);
 
         password = capturar_contrasena();
@@ -128,7 +125,6 @@ int auth_login() {
             continue;
         }
 
-        // Buscar en Admin
         sqlite3_stmt *stmt;
         const char *sql_admin =
             "SELECT password, fecha_creacion FROM Admin "
@@ -139,7 +135,7 @@ int auth_login() {
             sqlite3_bind_text(stmt, 1, usuario, -1, SQLITE_STATIC);
 
             if (sqlite3_step(stmt) == SQLITE_ROW) {
-                const char *hash_db = (const char *)sqlite3_column_text(stmt, 0);
+                const char *hash_db  = (const char *)sqlite3_column_text(stmt, 0);
                 const char *fecha_db = (const char *)sqlite3_column_text(stmt, 1);
 
                 char hash_calculado[65];
@@ -150,30 +146,6 @@ int auth_login() {
                 }
             }
             sqlite3_finalize(stmt);
-        }
-
-        // Si no autenticado en Admin, buscar en Cliente
-        if (!autenticado) {
-            const char *sql_cliente =
-                "SELECT password, fecha_creacion FROM Cliente "
-                "WHERE nombre_cliente=? AND activo=1;";
-
-            if (sqlite3_prepare_v2(db, sql_cliente, -1, &stmt, NULL) == SQLITE_OK) {
-                sqlite3_bind_text(stmt, 1, usuario, -1, SQLITE_STATIC);
-
-                if (sqlite3_step(stmt) == SQLITE_ROW) {
-                    const char *hash_db = (const char *)sqlite3_column_text(stmt, 0);
-                    const char *fecha_db = (const char *)sqlite3_column_text(stmt, 1);
-
-                    char hash_calculado[65];
-                    auth_generar_hash(password, fecha_db, hash_calculado);
-
-                    if (strcmp(hash_db, hash_calculado) == 0) {
-                        autenticado = 1;
-                    }
-                }
-                sqlite3_finalize(stmt);
-            }
         }
 
         log_escribir("Ha buscado en la base de datos");

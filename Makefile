@@ -49,13 +49,19 @@ build/cliente.exe: $(CLIENT_OBJ)
 run: build/main.exe
 	./build/main.exe
 
-run-server: build/servidor.exe
-	./build/servidor.exe
+run-server: build/servidor.exe build/main.exe
+	@echo "Iniciando servidor en segundo plano..."
+	./build/servidor.exe & sleep 1 && ./build/main.exe
+	@echo "Admin cerrado. Servidor sigue en segundo plano (usa 'make stop-server' para pararlo)."
 
 run-cliente: build/cliente.exe
 	./build/cliente.exe
 
+stop-server:
+	pkill -f "build/servidor.exe" || true
+	@echo "Servidor detenido."
+
 clean:
 	rm -f src/*.o admin/*.o server/*.o cliente/*.o build/*.exe
 
-.PHONY: all run run-server run-cliente clean
+.PHONY: all run run-server run-cliente stop-server clean

@@ -75,13 +75,16 @@ int main() {
     }
 
     // 4. Login
-    if (!auth_login()) { 
+    if (!auth_login()) {
         log_escribir("El sistema se ha apagado\n");
         curl_global_cleanup();
         db_cerrar();
         return 0;
     }
-    // 5. Menú principal (Resto del código igual...)
+
+    time_t inicio_sesion = time(NULL);
+
+    // 5. Menú principal
     int opcion;
     do {
         printf("\n*** MENU PRINCIPAL DEL ADMINISTRADOR ***\n");
@@ -89,6 +92,7 @@ int main() {
         printf("2. Gestion de noticias\n");
         printf("3. Gestion de licencias\n");
         printf("4. Configuracion\n");
+        printf("5. Administrar servidor\n");
         printf("0. Salir\n");
         printf("Seleccion: ");
 
@@ -102,8 +106,24 @@ int main() {
             case 2: submenuNoticias();      break;
             case 3: submenuLicencias();     break;
             case 4: submenuConfiguracion(); break;
+            case 5: {
+                int sub;
+                do {
+                    printf("\n--- ADMINISTRAR SERVIDOR ---\n");
+                    printf("1. Ver logs de esta sesion\n");
+                    printf("0. Volver al menu principal\n");
+                    printf("Seleccion: ");
+                    if (scanf("%d", &sub) != 1) { limpiarBuffer(); sub = -1; continue; }
+                    limpiarBuffer();
+                    if (sub == 1) {
+                        printf("\n--- LOGS DESDE EL INICIO DE SESION ---\n");
+                        log_mostrar_desde(inicio_sesion);
+                    }
+                } while (sub != 0);
+                break;
+            }
             case 0:
-                 printf("\n[INFO] Cerrando sesion. Hasta pronto!\n"); 
+                 printf("\n[INFO] Cerrando sesion. Hasta pronto!\n");
                  log_escribir("Ha cerrado la sesion");
                  log_set_usuario("Sistema");
                  break;
