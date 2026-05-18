@@ -2,16 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
 #include <string.h>
 #include <time.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/wait.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <arpa/inet.h>
 
 extern "C" {
 #include "../include/db.h"
@@ -27,11 +24,6 @@ extern "C" {
 #define MAXDATASIZE 4096
 
 extern sqlite3 *db;
-
-static void *get_in_addr(struct sockaddr *sa) {
-    if (sa->sa_family == AF_INET) return &(((struct sockaddr_in*)sa)->sin_addr);
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -74,6 +66,23 @@ static int handle_login(const char *usuario, const char *password,
             const char *fecha_db = (const char *)sqlite3_column_text(stmt, 1);
             const char *dni_db   = (const char *)sqlite3_column_text(stmt, 2);
 
+            // Compatibilidad: cuentas creadas con bug previo guardaban "temp".
+            // En ese caso, usar la contraseña tecleada para autocorregir el hash.
+            if (hash_db && strcmp(hash_db, "temp") == 0) {
+                char hash_migrado[65];
+                auth_generar_hash(password, fecha_db, hash_migrado);
+
+                sqlite3_stmt *stmt_upd = NULL;
+                const char *sql_upd = "UPDATE Cliente SET password=? WHERE dni=?;";
+                if (sqlite3_prepare_v2(db, sql_upd, -1, &stmt_upd, NULL) == SQLITE_OK) {
+                    sqlite3_bind_text(stmt_upd, 1, hash_migrado, -1, SQLITE_TRANSIENT);
+                    sqlite3_bind_text(stmt_upd, 2, dni_db,       -1, SQLITE_TRANSIENT);
+                    sqlite3_step(stmt_upd);
+                    sqlite3_finalize(stmt_upd);
+                    hash_db = hash_migrado;
+                }
+            }
+
             char hash_calc[65];
             auth_generar_hash(password, fecha_db, hash_calc);
 
@@ -94,41 +103,45 @@ static void handle_register(const char *dni, const char *usuario,
     sqlite3_stmt *stmt = NULL;
     char hash_final[65], fecha_aux[32] = "";
 
-    const char *sql_ins = "INSERT INTO Cliente (dni, nombre_cliente, password) VALUES (?, ?, 'temp');";
-    if (sqlite3_prepare_v2(db, sql_ins, -1, &stmt, NULL) != SQLITE_OK) {
-        snprintf(respuesta, MAXDATASIZE, "ERROR|Fallo SQL: %s", sqlite3_errmsg(db));
+    // Generar una fecha única y usarla tanto para hash como para INSERT
+    const char *sql_now = "SELECT CURRENT_TIMESTAMP;";
+    if (sqlite3_prepare_v2(db, sql_now, -1, &stmt, NULL) != SQLITE_OK) {
+        snprintf(respuesta, MAXDATASIZE, "ERROR|Fallo SQL al obtener timestamp: %s", sqlite3_errmsg(db));
         return;
     }
-    sqlite3_bind_text(stmt, 1, dni,     -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, usuario, -1, SQLITE_STATIC);
-    if (sqlite3_step(stmt) != SQLITE_DONE) {
-        snprintf(respuesta, MAXDATASIZE, "ERROR|No se pudo insertar: %s", sqlite3_errmsg(db));
-        sqlite3_finalize(stmt);
-        return;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        const unsigned char *ts = sqlite3_column_text(stmt, 0);
+        if (ts) strncpy(fecha_aux, (const char*)ts, sizeof(fecha_aux) - 1);
     }
     sqlite3_finalize(stmt);
 
-    const char *sql_sel = "SELECT fecha_creacion FROM Cliente WHERE dni=?;";
-    if (sqlite3_prepare_v2(db, sql_sel, -1, &stmt, NULL) == SQLITE_OK) {
-        sqlite3_bind_text(stmt, 1, dni, -1, SQLITE_STATIC);
-        if (sqlite3_step(stmt) == SQLITE_ROW)
-            strncpy(fecha_aux, (const char*)sqlite3_column_text(stmt, 0), sizeof(fecha_aux) - 1);
-        sqlite3_finalize(stmt);
-    }
     if (!fecha_aux[0]) {
-        snprintf(respuesta, MAXDATASIZE, "ERROR|No se pudo recuperar fecha de creacion");
+        snprintf(respuesta, MAXDATASIZE, "ERROR|No se pudo generar fecha de creacion");
         return;
     }
 
     auth_generar_hash(password, fecha_aux, hash_final);
 
-    const char *sql_upd = "UPDATE Cliente SET password=? WHERE dni=?;";
-    if (sqlite3_prepare_v2(db, sql_upd, -1, &stmt, NULL) == SQLITE_OK) {
-        sqlite3_bind_text(stmt, 1, hash_final, -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 2, dni,        -1, SQLITE_STATIC);
-        sqlite3_step(stmt);
-        sqlite3_finalize(stmt);
+    const char *sql_ins =
+        "INSERT INTO Cliente (dni, nombre_cliente, password, activo, fecha_creacion) "
+        "VALUES (?, ?, ?, 1, ?);";
+    if (sqlite3_prepare_v2(db, sql_ins, -1, &stmt, NULL) != SQLITE_OK) {
+        snprintf(respuesta, MAXDATASIZE, "ERROR|Fallo SQL: %s", sqlite3_errmsg(db));
+        return;
     }
+
+    sqlite3_bind_text(stmt, 1, dni,        -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, usuario,    -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, hash_final, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 4, fecha_aux,  -1, SQLITE_TRANSIENT);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
+        snprintf(respuesta, MAXDATASIZE, "ERROR|No se pudo registrar cliente: %s", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return;
+    }
+    sqlite3_finalize(stmt);
+
     snprintf(respuesta, MAXDATASIZE, "OK|Cliente registrado exitosamente");
 }
 
@@ -437,7 +450,6 @@ static void manejar_cliente(int fd) {
 
         int recibido = recv(fd, buffer, MAXDATASIZE - 1, 0);
         if (recibido == 0) {
-            printf("Cliente cerro la conexion\n");
             if (autenticado) log_escribir("Fin de sesion (conexion cerrada)");
             break;
         }
@@ -445,8 +457,6 @@ static void manejar_cliente(int fd) {
 
         buffer[recibido] = '\0';
         buffer[strcspn(buffer, "\r\n")] = '\0';
-        printf("[CMD] %s\n", buffer);
-
         char copia[MAXDATASIZE];
         strncpy(copia, buffer, MAXDATASIZE - 1);
         char *cmd = strtok(copia, "|");
@@ -584,8 +594,6 @@ int main(void) {
     int sockfd = -1;
     struct addrinfo hints, *servinfo, *p;
     int rv, yes = 1;
-    char addrstr[INET6_ADDRSTRLEN];
-
     if (!db_abrir("./ayuntamiento.db")) {
         fprintf(stderr, "Error abriendo base de datos\n");
         return 1;
@@ -611,8 +619,6 @@ int main(void) {
     if (!p) { fprintf(stderr, "Fallo al hacer bind\n"); return 2; }
     if (listen(sockfd, BACKLOG) == -1) { perror("listen"); close(sockfd); return 3; }
 
-    printf("Servidor escuchando en puerto %s\n", PORT);
-
     // Evitar procesos zombie al terminar hijos
     struct sigaction sa;
     sa.sa_handler = SIG_IGN;
@@ -626,9 +632,6 @@ int main(void) {
 
         int fd = accept(sockfd, (struct sockaddr*)&addr, &addrlen);
         if (fd == -1) { perror("accept"); continue; }
-
-        inet_ntop(addr.ss_family, get_in_addr((struct sockaddr*)&addr), addrstr, sizeof addrstr);
-        printf("Conectado desde %s\n", addrstr);
 
         pid_t pid = fork();
         if (pid == 0) {

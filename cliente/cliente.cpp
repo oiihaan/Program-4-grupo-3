@@ -176,7 +176,15 @@ extern "C" int cliente_login() {
 
     printf("\n--- LOGIN DE CLIENTE ---\n");
     printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
-    printf("Contraseña: "); scanf("%63s", password); limpiarBuffer();
+    
+    char *temp_password = capturar_contrasena();
+    if (temp_password == NULL) {
+        printf("[ERROR] Error al capturar contraseña.\n");
+        return 0;
+    }
+    strncpy(password, temp_password, sizeof(password) - 1);
+    password[sizeof(password) - 1] = '\0';
+    free(temp_password);
 
     snprintf(comando, sizeof(comando), "LOGIN|%s|%s\n", usuario, password);
 

@@ -11,13 +11,11 @@ int db_abrir(const char *ruta) {
         return 0;
     }
     db_ejecutar("PRAGMA foreign_keys = ON;");
-    printf("[OK] Base de datos abierta: %s\n", ruta);
     return 1;
 }
 
 void db_cerrar() {
     if (db) sqlite3_close(db);
-    printf("[OK] Base de datos cerrada.\n");
 }
 
 int db_ejecutar(const char *sql) {
