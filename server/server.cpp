@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -15,11 +16,12 @@ extern "C" {
 #include "../include/auth.h"
 #include "../include/funciones.h"
 #include "../include/log.h"
+#include "../include/config.h"
 }
 
 #include <sqlite3.h>
 
-#define PORT        "5555"
+#define PORT_FALLBACK "5555"
 #define BACKLOG     10
 #define MAXDATASIZE 4096
 
@@ -31,6 +33,31 @@ static int hora_a_minutos(const char *hora) {
     int h = 0, m = 0;
     sscanf(hora, "%d:%d", &h, &m);
     return h * 60 + m;
+}
+
+static int hora_formato_valido(const char *hora) {
+    if (!hora || strlen(hora) != 5 || hora[2] != ':') return 0;
+    if (!isdigit((unsigned char)hora[0]) || !isdigit((unsigned char)hora[1]) ||
+        !isdigit((unsigned char)hora[3]) || !isdigit((unsigned char)hora[4])) return 0;
+    int h = 0, m = 0;
+    if (sscanf(hora, "%2d:%2d", &h, &m) != 2) return 0;
+    return (h >= 0 && h <= 23 && m >= 0 && m <= 59);
+}
+
+static int fecha_formato_valido(const char *fecha) {
+    if (!fecha || strlen(fecha) != 10) return 0;
+    if (fecha[4] != '-' || fecha[7] != '-') return 0;
+    for (int i = 0; i < 10; i++) {
+        if (i == 4 || i == 7) continue;
+        if (!isdigit((unsigned char)fecha[i])) return 0;
+    }
+    int anio = 0, mes = 0, dia = 0;
+    if (sscanf(fecha, "%4d-%2d-%2d", &anio, &mes, &dia) != 3) return 0;
+    if (mes < 1 || mes > 12 || dia < 1) return 0;
+    int dias_mes[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    int bisiesto = ((anio % 4 == 0 && anio % 100 != 0) || (anio % 400 == 0));
+    if (bisiesto) dias_mes[1] = 29;
+    return dia <= dias_mes[mes - 1];
 }
 
 static int hay_solapamiento(const char *i1, const char *f1, const char *i2, const char *f2) {
@@ -205,6 +232,15 @@ static void handle_crear_reserva(const char *dni, const char *id_esp_str,
     int num_personas = atoi(personas_str);
     sqlite3_stmt *stmt;
 
+    if (!fecha_formato_valido(fecha)) {
+        snprintf(respuesta, MAXDATASIZE, "ERROR|Formato de fecha invalido (YYYY-MM-DD)");
+        return;
+    }
+    if (!hora_formato_valido(inicio) || !hora_formato_valido(fin)) {
+        snprintf(respuesta, MAXDATASIZE, "ERROR|Formato de hora invalido (HH:MM)");
+        return;
+    }
+
     // Verificar espacio activo y obtener capacidad
     int capacidad_max = 0;
     const char *sql_cap = "SELECT capacidad FROM Espacio WHERE id_espacio=? AND activo=1;";
@@ -308,9 +344,9 @@ static void handle_listar_noticias(const char *categoria, char *respuesta) {
     char buf[MAXDATASIZE];
     int pos = snprintf(buf, sizeof(buf), "OK");
 
-    const char *sql_todas = "SELECT id_publicacion, categoria, titulo, enlace, fecha_publicacion "
+    const char *sql_todas = "SELECT id_publicacion, categoria, titulo, enlace, fecha_publicacion, dni_admin "
                             "FROM Publicacion WHERE estado='ACTIVA';";
-    const char *sql_cat   = "SELECT id_publicacion, categoria, titulo, enlace, fecha_publicacion "
+    const char *sql_cat   = "SELECT id_publicacion, categoria, titulo, enlace, fecha_publicacion, dni_admin "
                             "FROM Publicacion WHERE categoria=? AND estado='ACTIVA';";
 
     int por_categoria = categoria && categoria[0] != '\0';
@@ -319,12 +355,14 @@ static void handle_listar_noticias(const char *categoria, char *respuesta) {
         if (por_categoria) sqlite3_bind_text(stmt, 1, categoria, -1, SQLITE_STATIC);
         while (sqlite3_step(stmt) == SQLITE_ROW && pos < (int)sizeof(buf) - 400) {
             const char *enlace = (const char*)sqlite3_column_text(stmt, 3);
-            pos += snprintf(buf + pos, sizeof(buf) - pos, "\n%d;%s;%s;%s;%s",
+            const char *dni_admin = (const char*)sqlite3_column_text(stmt, 5);
+            pos += snprintf(buf + pos, sizeof(buf) - pos, "\n%d;%s;%s;%s;%s;%s",
                 sqlite3_column_int(stmt,  0),
                 sqlite3_column_text(stmt, 1),
                 sqlite3_column_text(stmt, 2),
                 enlace ? enlace : "",
-                sqlite3_column_text(stmt, 4));
+                sqlite3_column_text(stmt, 4),
+                dni_admin ? dni_admin : "");
         }
         sqlite3_finalize(stmt);
     }
@@ -594,7 +632,12 @@ int main(void) {
     int sockfd = -1;
     struct addrinfo hints, *servinfo, *p;
     int rv, yes = 1;
-    if (!db_abrir("./ayuntamiento.db")) {
+    if (!config_cargar("./server.conf")) {
+        fprintf(stderr, "Error leyendo server.conf\n");
+        return 1;
+    }
+    const char *port = (config.server_puerto[0] != '\0') ? config.server_puerto : PORT_FALLBACK;
+    if (!db_abrir(config.db_ruta)) {
         fprintf(stderr, "Error abriendo base de datos\n");
         return 1;
     }
@@ -605,7 +648,7 @@ int main(void) {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags    = AI_PASSIVE;
 
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(NULL, port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }

@@ -175,7 +175,10 @@ extern "C" int cliente_login() {
     }
 
     printf("\n--- LOGIN DE CLIENTE ---\n");
-    printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
+    printf("Usuario (nombre): ");
+    fflush(stdout);
+    scanf("%63s", usuario);
+    limpiarBuffer();
     
     char *temp_password = capturar_contrasena();
     if (temp_password == NULL) {
@@ -194,14 +197,6 @@ extern "C" int cliente_login() {
             return 1;
         } else if (strncmp(respuesta, "USER_NOT_FOUND", 14) == 0) {
             printf("[ERROR] Usuario no encontrado.\n");
-            printf("¿Desea registrarse? (y/n): ");
-            char opcion;
-            scanf(" %c", &opcion);
-            limpiarBuffer();
-            if (opcion == 'y' || opcion == 'Y') {
-                cliente_registrar_nuevo();
-                return cliente_login();
-            }
             return 0;
         } else {
             printf("[ERROR] %s\n", respuesta);

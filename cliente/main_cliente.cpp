@@ -39,6 +39,29 @@ static int mostrar_respuesta_lista(const char *respuesta, const char *cabecera) 
     return total;
 }
 
+static void cargar_puerto_servidor(char *dest, size_t size) {
+    if (size == 0) return;
+    strncpy(dest, "5555", size - 1);
+    dest[size - 1] = '\0';
+
+    FILE *f = fopen("server.conf", "r");
+    if (!f) return;
+
+    char linea[256];
+    while (fgets(linea, sizeof(linea), f)) {
+        if (linea[0] == '#' || linea[0] == '\n') continue;
+        char clave[128], valor[128];
+        if (sscanf(linea, "%127[^=]=%127s", clave, valor) == 2) {
+            if (strcmp(clave, "server_puerto") == 0) {
+                strncpy(dest, valor, size - 1);
+                dest[size - 1] = '\0';
+                break;
+            }
+        }
+    }
+    fclose(f);
+}
+
 // ─── ESPACIOS ─────────────────────────────────────────────────────────────────
 
 static void mostrar_espacios(int sock) {
@@ -211,8 +234,8 @@ static void mostrar_noticias(int sock, const char *categoria) {
 
     const char *titulo = categoria ? categoria : "TODAS";
     printf("\n--- NOTICIAS: %s ---\n", titulo);
-    printf("  %-4s %-12s %-35s %-10s\n", "ID", "Categoria", "Titulo", "Fecha");
-    printf("  %s\n", "----------------------------------------------------------------------");
+    printf("  %-4s %-12s %-32s %-12s %-12s\n", "ID", "Categoria", "Titulo", "Fecha", "Usuario");
+    printf("  %s\n", "---------------------------------------------------------------------------------");
 
     char copia[MAXDATASIZE];
     strncpy(copia, respuesta, MAXDATASIZE - 1);
@@ -221,10 +244,12 @@ static void mostrar_noticias(int sock, const char *categoria) {
     while ((linea = strtok(NULL, "\n")) != NULL) {
         if (strcmp(linea, "END") == 0) break;
         int id;
-        char cat[32], tit[128], enlace[256], fecha[16];
-        if (sscanf(linea, "%d;%31[^;];%127[^;];%255[^;];%15s",
-                   &id, cat, tit, enlace, fecha) >= 4) {
-            printf("  %-4d %-12s %-35s %-10s\n", id, cat, tit, fecha);
+        char cat[32], tit[128], enlace[256], fecha[32], usuario[64];
+        strcpy(usuario, "-");
+        int campos = sscanf(linea, "%d;%31[^;];%127[^;];%255[^;];%31[^;];%63[^;\n]",
+                            &id, cat, tit, enlace, fecha, usuario);
+        if (campos >= 5) {
+            printf("  %-4d %-12s %-32s %-12s %-12s\n", id, cat, tit, fecha, usuario);
             if (enlace[0] != '\0') printf("       Enlace: %s\n", enlace);
             total++;
         }
@@ -367,7 +392,9 @@ int main() {
     printf("=== AYUNTAMIENTO DE DONOSTIA - PORTAL CIUDADANO ===\n");
     printf("Conectando al servidor...\n");
 
-    int sock = cliente_conectar("127.0.0.1", "5555");
+    char puerto[16];
+    cargar_puerto_servidor(puerto, sizeof(puerto));
+    int sock = cliente_conectar("127.0.0.1", puerto);
     if (sock == -1) {
         printf("[ERROR] No se pudo conectar al servidor.\n");
         printf("Asegurate de que el servidor esta corriendo.\n");
@@ -377,11 +404,29 @@ int main() {
 
     cliente_set_socket(sock);
 
-    // Login obligatorio antes del menú principal
-    if (!cliente_login()) {
-        printf("No se pudo iniciar sesion. Saliendo.\n");
-        cliente_cerrar(sock);
-        return 1;
+    int autenticado = 0;
+    while (!autenticado) {
+        int opcion_inicio;
+        printf("\n=== INICIO ===\n");
+        printf("1. Iniciar sesion\n");
+        printf("2. Crear usuario\n");
+        printf("0. Salir\n");
+        printf("Seleccion: ");
+
+        if (scanf("%d", &opcion_inicio) != 1) { limpiarBuffer(); continue; }
+        limpiarBuffer();
+
+        if (opcion_inicio == 1) {
+            autenticado = cliente_login();
+            if (!autenticado) printf("[ERROR] No se pudo iniciar sesion.\n");
+        } else if (opcion_inicio == 2) {
+            cliente_registrar_nuevo();
+        } else if (opcion_inicio == 0) {
+            cliente_cerrar(sock);
+            return 0;
+        } else {
+            printf("[!] Opcion invalida.\n");
+        }
     }
 
     int opcion;

@@ -26,7 +26,7 @@ extern "C" {
 extern sqlite3 *db;
 
 #define SERVER_PID_FILE ".server.pid"
-#define SERVER_PORT     5555
+static int g_server_port = 5555;
 
 static int servidor_esta_activo() {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -35,7 +35,7 @@ static int servidor_esta_activo() {
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(SERVER_PORT);
+    addr.sin_port        = htons(g_server_port);
     addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     struct timeval tv;
@@ -104,6 +104,13 @@ int main() {
 
     // cargar configuración
     if (!config_cargar("./server.conf")) return 1;
+
+    if (config.server_puerto[0] != '\0') {
+        int port_cfg = atoi(config.server_puerto);
+        if (port_cfg > 0 && port_cfg < 65536) {
+            g_server_port = port_cfg;
+        }
+    }
 
     // abrir base de datos
     if (!db_abrir(config.db_ruta)) return 1;
@@ -189,7 +196,7 @@ int main() {
 
                         printf("\n--- ADMINISTRAR SERVIDOR ---\n");
                         if (activo) {
-                            printf("[ESTADO] Servidor ENCENDIDO (puerto %d)\n", SERVER_PORT);
+                            printf("[ESTADO] Servidor ENCENDIDO (puerto %d)\n", g_server_port);
                             printf("1. Ver logs de esta sesion\n");
                             printf("2. Apagar el servidor\n");
                         } else {

@@ -54,9 +54,10 @@ static int callback_mostrar_deportes(void *data, int cols, char **valores, char 
     const char *titulo = (valores[1] && valores[1][0]) ? valores[1] : "-";
     const char *enlace = (valores[2] && valores[2][0]) ? valores[2] : "-";
     const char *fecha = (valores[3] && valores[3][0]) ? valores[3] : "-";
+    const char *usuario = (valores[4] && valores[4][0]) ? valores[4] : "-";
 
     (*contador)++;
-    printf("  [%s] %-30s | %-10s\n", id, titulo, fecha);
+    printf("  [%s] %-30s | %-10s | Usuario: %s\n", id, titulo, fecha, usuario);
     if (enlace[0] != '-') printf("      Enlace: %s\n", enlace);
     return 0;
 }
@@ -68,9 +69,10 @@ static int callback_mostrar_politica(void *data, int cols, char **valores, char 
     const char *titulo = (valores[1] && valores[1][0]) ? valores[1] : "-";
     const char *enlace = (valores[2] && valores[2][0]) ? valores[2] : "-";
     const char *fecha = (valores[3] && valores[3][0]) ? valores[3] : "-";
+    const char *usuario = (valores[4] && valores[4][0]) ? valores[4] : "-";
 
     (*contador)++;
-    printf("  [%s] %-30s | %-10s\n", id, titulo, fecha);
+    printf("  [%s] %-30s | %-10s | Usuario: %s\n", id, titulo, fecha, usuario);
     if (enlace[0] != '-') printf("      Enlace: %s\n", enlace);
     return 0;
 }
@@ -82,9 +84,10 @@ static int callback_listar_noticias(void *data, int cols, char **valores, char *
     const char *categoria = (valores[1] && valores[1][0]) ? valores[1] : "-";
     const char *titulo = (valores[2] && valores[2][0]) ? valores[2] : "-";
     const char *fecha = (valores[3] && valores[3][0]) ? valores[3] : "-";
+    const char *usuario = (valores[4] && valores[4][0]) ? valores[4] : "-";
 
     (*contador)++;
-    printf("  [%s] %-12s | %-30s | %-10s\n", id, categoria, titulo, fecha);
+    printf("  [%s] %-12s | %-30s | %-10s | Usuario: %s\n", id, categoria, titulo, fecha, usuario);
     return 0;
 }
 
@@ -447,7 +450,7 @@ void mostrarDeportes()
     char *err = NULL;
     int total = 0;
     int resultado = sqlite3_exec(db,
-                                 "SELECT id_publicacion, titulo, enlace, fecha_publicacion "
+                                 "SELECT id_publicacion, titulo, enlace, fecha_publicacion, dni_admin "
                                  "FROM Publicacion "
                                  "WHERE categoria='Deportes' AND estado='ACTIVA';",
                                  callback_mostrar_deportes, &total, &err);
@@ -473,7 +476,7 @@ void mostrarPolitica()
     char *err = NULL;
     int total = 0;
     int resultado = sqlite3_exec(db,
-                                 "SELECT id_publicacion, titulo, enlace, fecha_publicacion "
+                                 "SELECT id_publicacion, titulo, enlace, fecha_publicacion, dni_admin "
                                  "FROM Publicacion "
                                  "WHERE categoria='Politica' AND estado='ACTIVA';",
                                  callback_mostrar_politica, &total, &err);
@@ -497,7 +500,7 @@ void noticia_listar()
     char *err = NULL;
     int total = 0;
     int resultado = sqlite3_exec(db,
-                                 "SELECT id_publicacion, categoria, titulo, fecha_publicacion "
+                                 "SELECT id_publicacion, categoria, titulo, fecha_publicacion, dni_admin "
                                  "FROM Publicacion;",
                                  callback_listar_noticias, &total, &err);
 

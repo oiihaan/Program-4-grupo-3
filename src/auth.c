@@ -97,7 +97,7 @@ int auth_login() {
     while (intentos > 0) {
         int usuario_existe = 0;
         do {
-            printf("\nUsuario: ");
+            printf("\nUsuario-Admin: ");
             scanf("%63s", usuario);
             limpiarBuffer();
 
