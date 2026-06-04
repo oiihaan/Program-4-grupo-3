@@ -7,6 +7,7 @@
 #include "../include/db.h"   
 #include "../include/auth.h"
 #include "../include/log.h"
+#include "../include/server.h"
 
 
 extern sqlite3 *db;
@@ -127,6 +128,13 @@ int config_cargar(const char *ruta)
     }
 
     fclose(f);
+
+    int puerto = atoi(config.server_puerto);
+    if (puerto <= 0 || puerto >= 65536) {
+        puerto = 5555;
+    }
+    server_configurar_desde_puerto(puerto);
+
     printf("[OK] Configuracion cargada desde: %s\n", ruta);
     return 1;
 }
@@ -136,7 +144,7 @@ void config_mostrar()
     printf("\n--- CONFIGURACION ACTUAL ---\n");
     printf("BD:      %s\n", config.db_ruta);
     printf("Admin:   %s\n", config.admin_usuario);
-    printf("Puerto:  %s\n", config.server_puerto);
+    printf("Puerto:  %d\n", server_get_puerto());
 }
 int definir_intentos()
 {

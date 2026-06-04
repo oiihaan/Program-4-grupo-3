@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../include/cliente.h"
+#include "../include/server.h"
 
 extern "C" {
 #include "../include/funciones.h"
@@ -195,6 +196,13 @@ static void cancelar_reserva(int sock) {
 static void submenu_reservas(int sock) {
     int opcion;
     do {
+        server_verificar_estado();
+        if (!server_get_estado()) {
+            printf("\n[AVISO] El servidor se ha apagado. Cerrando cliente...\n");
+            cliente_cerrar(sock);
+            exit(0);
+        }
+
         printf("\n--- RESERVAS ---\n");
         printf("1. Ver mis reservas\n");
         printf("2. Crear reserva\n");
@@ -260,6 +268,13 @@ static void mostrar_noticias(int sock, const char *categoria) {
 static void submenu_noticias(int sock) {
     int opcion;
     do {
+        server_verificar_estado();
+        if (!server_get_estado()) {
+            printf("\n[AVISO] El servidor se ha apagado. Cerrando cliente...\n");
+            cliente_cerrar(sock);
+            exit(0);
+        }
+
         printf("\n--- NOTICIAS ---\n");
         printf("1. Todas las noticias\n");
         printf("2. Deportes\n");
@@ -366,6 +381,13 @@ static void ver_mis_licencias(int sock) {
 static void submenu_licencias(int sock) {
     int opcion;
     do {
+        server_verificar_estado();
+        if (!server_get_estado()) {
+            printf("\n[AVISO] El servidor se ha apagado. Cerrando cliente...\n");
+            cliente_cerrar(sock);
+            exit(0);
+        }
+
         printf("\n--- LICENCIAS ---\n");
         printf("1. Ver tipos de licencia disponibles\n");
         printf("2. Solicitar licencia\n");
@@ -394,6 +416,9 @@ int main() {
 
     char puerto[16];
     cargar_puerto_servidor(puerto, sizeof(puerto));
+    int port_num = atoi(puerto);
+    server_configurar_desde_puerto(port_num);
+
     int sock = cliente_conectar("127.0.0.1", puerto);
     if (sock == -1) {
         printf("[ERROR] No se pudo conectar al servidor.\n");
@@ -406,6 +431,13 @@ int main() {
 
     int autenticado = 0;
     while (!autenticado) {
+        server_verificar_estado();
+        if (!server_get_estado()) {
+            printf("\n[AVISO] El servidor se ha apagado. Cerrando cliente...\n");
+            cliente_cerrar(sock);
+            return 0;
+        }
+
         int opcion_inicio;
         printf("\n=== INICIO ===\n");
         printf("1. Iniciar sesion\n");
@@ -431,6 +463,12 @@ int main() {
 
     int opcion;
     do {
+        server_verificar_estado();
+        if (!server_get_estado()) {
+            printf("\n[AVISO] El servidor se ha apagado. Cerrando cliente...\n");
+            break;
+        }
+
         printf("\n=== MENU PRINCIPAL ===\n");
         printf("1. Ver espacios disponibles\n");
         printf("2. Mis reservas\n");

@@ -20,34 +20,14 @@ extern "C" {
 #include "../include/log.h"
 }
 
+#include "../include/server.h"
+
+using namespace server;
+
 //INCLUDEs para cURL (lo de la API del tiempo)
 #include <curl/curl.h>
 
 extern sqlite3 *db;
-
-#define SERVER_PID_FILE ".server.pid"
-static int g_server_port = 5555;
-
-static int servidor_esta_activo() {
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0) return 0;
-
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(g_server_port);
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-    struct timeval tv;
-    tv.tv_sec  = 1;
-    tv.tv_usec = 0;
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-    setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-
-    int resultado = (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) == 0) ? 1 : 0;
-    close(sock);
-    return resultado;
-}
 
 static void servidor_arrancar() {
     printf("[INFO] Arrancando servidor en segundo plano...\n");
@@ -69,6 +49,7 @@ static void servidor_arrancar() {
     printf("[OK] Servidor arrancado con PID=%d.\n", (int)pid);
     log_escribir("El servidor ha sido arrancado desde el panel de administracion");
     sleep(1);
+    server_set_estado(1);
 }
 
 static void servidor_detener() {
@@ -76,6 +57,7 @@ static void servidor_detener() {
     if (!f) {
         printf("[AVISO] No se encontro el archivo %s. Intentando detener por nombre...\n", SERVER_PID_FILE);
         system("pkill -x servidor.exe 2>/dev/null");
+        server_set_estado(0);
         return;
     }
     int pid = 0;
@@ -89,8 +71,10 @@ static void servidor_detener() {
     if (kill(pid, SIGTERM) == 0) {
         printf("[OK] Servidor detenido (PID=%d).\n", pid);
         log_escribir("El servidor ha sido detenido desde el panel de administracion");
+        server_set_estado(0);
     } else {
         printf("[AVISO] No se pudo detener el proceso PID=%d (quizas ya no existe).\n", pid);
+        server_set_estado(0);
     }
     remove(SERVER_PID_FILE);
 }
@@ -105,12 +89,8 @@ int main() {
     // cargar configuración
     if (!config_cargar("./server.conf")) return 1;
 
-    if (config.server_puerto[0] != '\0') {
-        int port_cfg = atoi(config.server_puerto);
-        if (port_cfg > 0 && port_cfg < 65536) {
-            g_server_port = port_cfg;
-        }
-    }
+    // Verificar estado real del servidor (en caso de que estuviera corriendo antes)
+    server_verificar_estado();
 
     // abrir base de datos
     if (!db_abrir(config.db_ruta)) return 1;
@@ -124,7 +104,6 @@ int main() {
     const char *sql_check = "SELECT COUNT(*) FROM Admin;";
     // --------------------------------------------
 
-    printf("[DEBUG] Comprobando usuarios en la BD...\n");
     log_escribir("Ha buscado en la base de datos");
 
 
@@ -136,8 +115,6 @@ int main() {
     } else {
         printf("[ERROR SQL] %s\n", sqlite3_errmsg(db)); 
     }
-
-    printf("[DEBUG] Total admins encontrados: %d\n", total_admins);
 
     // NUEVO: Si no hay nadie, registrar uno
     if (total_admins == 0) {
@@ -192,13 +169,13 @@ int main() {
             case 5: {
                     int sub;
                     do {
-                        int activo = servidor_esta_activo();
+                        int activo = server_get_estado();
 
                         printf("\n--- ADMINISTRAR SERVIDOR ---\n");
                         if (activo) {
-                            printf("[ESTADO] Servidor ENCENDIDO (puerto %d)\n", g_server_port);
-                            printf("1. Ver logs de esta sesion\n");
-                            printf("2. Apagar el servidor\n");
+                            printf("[ESTADO] Servidor ENCENDIDO \n");
+                            printf("1. Apagar el servidor\n");
+                            printf("2. Ver logs de esta sesion\n");
                         } else {
                             printf("[ESTADO] Servidor APAGADO\n");
                             printf("1. Encender el servidor\n");
@@ -211,14 +188,16 @@ int main() {
 
                         if (activo) {
                             if (sub == 1) {
+                                servidor_detener();
+                                break;
+                            } else if (sub == 2) {
                                 printf("\n--- LOGS DESDE EL INICIO DE SESION ---\n");
                                 log_mostrar_desde(inicio_sesion);
-                            } else if (sub == 2) {
-                                servidor_detener();
                             }
                         } else {
                             if (sub == 1) {
                                 servidor_arrancar();
+                                break;
                             }
                         }
                     } while (sub != 0);

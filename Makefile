@@ -11,7 +11,7 @@ C_COMMON = src/auth.c src/db.c src/funciones.c src/log.c src/sa256.c src/utils.c
 # Admin: archivos comunes + módulos de admin
 ADMIN_C   = $(C_COMMON) $(wildcard admin/*.c)
 ADMIN_CPP = src/main.cpp
-ADMIN_OBJ = $(ADMIN_C:.c=.o) $(ADMIN_CPP:.cpp=.o)
+ADMIN_OBJ = $(ADMIN_C:.c=.o) $(ADMIN_CPP:.cpp=.o) server/server_admin.o
 
 # Servidor
 SERVER_C   = $(C_COMMON) admin/config.c
@@ -21,7 +21,7 @@ SERVER_OBJ = $(SERVER_C:.c=.o) $(SERVER_CPP:.cpp=.o)
 # Cliente
 CLIENT_C   = src/funciones.c src/log.c
 CLIENT_CPP = cliente/cliente.cpp cliente/main_cliente.cpp
-CLIENT_OBJ = $(CLIENT_C:.c=.o) $(CLIENT_CPP:.cpp=.o)
+CLIENT_OBJ = $(CLIENT_C:.c=.o) $(CLIENT_CPP:.cpp=.o) server/server_client.o
 
 BUILD_DIR = build
 SERVER_PID_FILE = .server.pid
@@ -36,6 +36,15 @@ $(BUILD_DIR):
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+server/server.o: server/server.cpp
+	$(CXX) $(CXXFLAGS) -DSERVER_MAIN -c $< -o $@
+
+server/server_admin.o: server/server.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+server/server_client.o: server/server.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 build/main.exe: $(ADMIN_OBJ)

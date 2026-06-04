@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 
 extern "C" {
@@ -20,12 +21,104 @@ extern "C" {
 }
 
 #include <sqlite3.h>
+#include "../include/server.h"
 
 #define PORT_FALLBACK "5555"
 #define BACKLOG     10
 #define MAXDATASIZE 4096
 
 extern sqlite3 *db;
+using namespace server;
+
+// ─── IMPLEMENTACIÓN CLASE SERVER ──────────────────────────────────────────
+
+static Server *g_server = NULL;
+
+Server::Server(int puerto) {
+    this->puerto = puerto;
+    this->estado = 0;
+}
+Server::~Server() {
+}
+
+int Server::getEstado() const {
+    return estado;
+}
+void Server::setEstado(int estado) {
+    this->estado = (estado == 1) ? 1 : 0;
+}
+int Server::getPuerto() const {
+    return puerto;
+}
+void Server::setPuerto(int puerto) {
+    this->puerto = puerto;
+}
+
+extern "C" {
+    void server_configurar_desde_puerto(int puerto) {
+        if (g_server == NULL) {
+            g_server = new Server(puerto);
+        } else {
+            g_server->setPuerto(puerto);
+        }
+    }
+
+    int server_get_puerto(void) {
+        return (g_server != NULL) ? g_server->getPuerto() : atoi(PORT_FALLBACK);
+    }
+
+    void server_set_estado(int estado) {
+        if (g_server != NULL) {
+            g_server->setEstado(estado);
+        }
+    }
+
+    int server_get_estado(void) {
+        return (g_server != NULL) ? g_server->getEstado() : 0;
+    }
+
+    void server_verificar_estado(void) {
+        int puerto = server_get_puerto();
+
+        if (server_probar_puerto(puerto)) {
+            if (g_server != NULL) g_server->setEstado(1);
+            return;
+        }
+
+        const char *pid_file = SERVER_PID_FILE;
+        FILE *f = fopen(pid_file, "r");
+        if (f) {
+            int pid = 0;
+            fscanf(f, "%d", &pid);
+            fclose(f);
+            if (pid > 0 && kill(pid, 0) != 0) {
+                remove(pid_file);
+            }
+        }
+
+        if (g_server != NULL) g_server->setEstado(0);
+    }
+
+    int server_probar_puerto(int puerto) {
+        if (puerto <= 0 || puerto >= 65536) return 0;
+
+        int sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock < 0) return 0;
+
+        struct sockaddr_in addr;
+        memset(&addr, 0, sizeof(addr));
+        addr.sin_family      = AF_INET;
+        addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        addr.sin_port        = htons((uint16_t)puerto);
+
+        int resultado = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
+        close(sock);
+
+        return (resultado == 0) ? 1 : 0;
+    }
+}
+
+
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -172,7 +265,7 @@ static void handle_register(const char *dni, const char *usuario,
     snprintf(respuesta, MAXDATASIZE, "OK|Cliente registrado exitosamente");
 }
 
-// ─── ESPACIOS ─────────────────────────────────────────────────────────────────
+// ─── ESPACIOS ─────────────────────────────────────────────────────────────
 
 static void handle_listar_espacios(char *respuesta) {
     sqlite3_stmt *stmt;
@@ -194,7 +287,7 @@ static void handle_listar_espacios(char *respuesta) {
     strncpy(respuesta, buf, MAXDATASIZE - 1);
 }
 
-// ─── RESERVAS ─────────────────────────────────────────────────────────────────
+// ─── RESERVAS ─────────────────────────────────────────────────────────────
 
 static void handle_mis_reservas(const char *dni, char *respuesta) {
     sqlite3_stmt *stmt;
@@ -336,7 +429,7 @@ static void handle_cancelar_reserva(const char *dni, const char *id_str, char *r
     }
 }
 
-// ─── NOTICIAS ─────────────────────────────────────────────────────────────────
+// ─── NOTICIAS ─────────────────────────────────────────────────────────────
 
 // categoria puede ser "Deportes", "Politica" o NULL/vacío para todas
 static void handle_listar_noticias(const char *categoria, char *respuesta) {
@@ -370,7 +463,7 @@ static void handle_listar_noticias(const char *categoria, char *respuesta) {
     strncpy(respuesta, buf, MAXDATASIZE - 1);
 }
 
-// ─── LICENCIAS ────────────────────────────────────────────────────────────────
+// ─── LICENCIAS ────────────────────────────────────────────────────────────
 
 static void handle_listar_tipos_licencia(char *respuesta) {
     sqlite3_stmt *stmt;
@@ -628,6 +721,7 @@ static void manejar_cliente(int fd) {
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 
+#ifdef SERVER_MAIN
 int main(void) {
     int sockfd = -1;
     struct addrinfo hints, *servinfo, *p;
@@ -636,7 +730,8 @@ int main(void) {
         fprintf(stderr, "Error leyendo server.conf\n");
         return 1;
     }
-    const char *port = (config.server_puerto[0] != '\0') ? config.server_puerto : PORT_FALLBACK;
+    char port[16];
+    snprintf(port, sizeof(port), "%d", server_get_puerto());
     if (!db_abrir(config.db_ruta)) {
         fprintf(stderr, "Error abriendo base de datos\n");
         return 1;
@@ -661,6 +756,7 @@ int main(void) {
     freeaddrinfo(servinfo);
     if (!p) { fprintf(stderr, "Fallo al hacer bind\n"); return 2; }
     if (listen(sockfd, BACKLOG) == -1) { perror("listen"); close(sockfd); return 3; }
+    server_set_estado(1);
 
     // Evitar procesos zombie al terminar hijos
     struct sigaction sa;
@@ -691,6 +787,8 @@ int main(void) {
     }
 
     db_cerrar();
+    server_set_estado(0);
     close(sockfd);
     return 0;
 }
+#endif
