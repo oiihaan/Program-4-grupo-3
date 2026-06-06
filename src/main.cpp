@@ -176,6 +176,8 @@ int main() {
                             printf("[ESTADO] Servidor ENCENDIDO \n");
                             printf("1. Apagar el servidor\n");
                             printf("2. Ver logs de esta sesion\n");
+                            printf("3. Ver logs en tiempo real\n");
+
                         } else {
                             printf("[ESTADO] Servidor APAGADO\n");
                             printf("1. Encender el servidor\n");
@@ -189,30 +191,54 @@ int main() {
                         if (activo) {
                             if (sub == 1) {
                                 servidor_detener();
-                                break;
+                                
                             } else if (sub == 2) {
                                 printf("\n--- LOGS DESDE EL INICIO DE SESION ---\n");
                                 log_mostrar_desde(inicio_sesion);
+                            } else if(sub==3){
+                                log_seguir_en_tiempo_real();
                             }
                         } else {
                             if (sub == 1) {
                                 servidor_arrancar();
-                                break;
+                                
                             }
                         }
                     } while (sub != 0);
                     break;
                 }
-            case 0:
-                 printf("\n[INFO] Cerrando sesion. Hasta pronto!\n");
-                 log_escribir("Ha cerrado la sesion");
-                 log_set_usuario("Sistema");
+            case 0: {
+                 if (server_get_estado()) {
+                     printf("\n[AVISO] El servidor sigue ENCENDIDO.\n");
+                     printf("1. Cerrar sesion dejando el servidor encendido\n");
+                     printf("2. Apagar el servidor y cerrar sesion\n");
+                     printf("Seleccion: ");
+                     int confirm;
+                     if (scanf("%d", &confirm) != 1) { limpiarBuffer(); opcion = -1; break; }
+                     limpiarBuffer();
+                     if (confirm == 1) {
+                        printf("\n[INFO] Cerrando sesion. El servidor sigue activo. Hasta pronto!\n");
+                        log_escribir("Ha cerrado la sesion dejando el servidor encendido");
+                     } else if (confirm == 2) {
+                        servidor_detener();
+                        printf("\n[INFO] Servidor apagado. Cerrando sesion. Hasta pronto!\n");
+                        log_escribir("Ha cerrado la sesion apagando el servidor");
+                        log_escribir("El sistema se ha apagado\n");
+
+                     } else {
+                         printf("[!] Opcion no valida. Volviendo al menu.\n");
+                         opcion = -1; 
+                     }
+                 } else {
+                     printf("\n[INFO] Cerrando sesion. Hasta pronto!\n");
+                     
+                 }
                  break;
+            }
             default: printf("\n[ERROR] Opcion no valida.\n"); break;
         }
     } while (opcion != 0);
 
-    log_escribir("El sistema se ha apagado\n");
     curl_global_cleanup();
     db_cerrar();
     return 0;

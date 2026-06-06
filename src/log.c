@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 static char usuario_sesion[64] = "Sistema";
 
@@ -83,3 +85,47 @@ void log_mostrar_desde(time_t desde) {
     if (total == 0) printf("  (sin actividad desde el inicio de sesion)\n");
 }
 
+void log_seguir_en_tiempo_real() {
+    FILE *f = fopen("log.txt", "r");
+    if (!f) { printf("  (no hay fichero de log)\n"); return; }
+
+    printf("\n--- LOGS EN TIEMPO REAL (pulsa INTRO para volver) ---\n\n");
+    fflush(stdout);
+
+    // Mostrar todo el contenido actual del fichero
+    char linea[512];
+    while (fgets(linea, sizeof(linea), f)) {
+        printf("  %s", linea);
+    }
+    fflush(stdout);
+
+    // Configurar stdin en modo no bloqueante
+    int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+
+    // Seguir leyendo líneas nuevas hasta que el usuario pulse INTRO
+    while (1) {
+        // Comprobar si el usuario pulso INTRO
+        char c;
+        ssize_t n = read(STDIN_FILENO, &c, 1);
+        if (n > 0 && (c == '\n' || c == '\r')) {
+            break;
+        }
+
+        // Leer nuevas líneas del fichero
+        if (fgets(linea, sizeof(linea), f)) {
+            printf("  %s", linea);
+            fflush(stdout);
+        } else {
+            // No hay líneas nuevas, esperar un poco
+            usleep(300000); // 300ms
+            clearerr(f);
+        }
+    }
+
+    // Restaurar stdin bloqueante
+    fcntl(STDIN_FILENO, F_SETFL, flags);
+
+    fclose(f);
+    printf("\n[INFO] Saliendo de logs en tiempo real.\n");
+}

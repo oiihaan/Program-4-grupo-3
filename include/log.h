@@ -10,5 +10,6 @@ char* log_get_usuario();
 void log_escribir(const char *accion);
 void log_login_escribir(const char *usuario, const char *accion);
 void log_mostrar_desde(time_t desde);
+void log_seguir_en_tiempo_real();
 
 #endif
