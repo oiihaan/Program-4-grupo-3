@@ -45,7 +45,7 @@ server/server_admin.o: server/server.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 server/server_client.o: server/server.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -DCLIENT_MODE -c $< -o $@
 
 build/main.exe: $(ADMIN_OBJ)
 	$(CXX) $(ADMIN_OBJ) $(LIBS) -o $@
@@ -87,3 +87,4 @@ clean:
 	rm -f src/*.o admin/*.o server/*.o cliente/*.o build/*.exe
 
 .PHONY: all run run-server run-cliente stop-server clean
+	

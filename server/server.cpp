@@ -13,21 +13,27 @@
 #include <netdb.h>
 
 extern "C" {
+#ifndef CLIENT_MODE
 #include "../include/db.h"
 #include "../include/auth.h"
+#include "../include/config.h"
+#endif
 #include "../include/funciones.h"
 #include "../include/log.h"
-#include "../include/config.h"
 }
 
+#ifndef CLIENT_MODE
 #include <sqlite3.h>
+#endif
 #include "../include/server.h"
 
 #define PORT_FALLBACK "5555"
 #define BACKLOG     10
 #define MAXDATASIZE 4096
 
+#ifndef CLIENT_MODE
 extern sqlite3 *db;
+#endif
 using namespace server;
 
 // ─── IMPLEMENTACIÓN CLASE SERVER ──────────────────────────────────────────
@@ -121,6 +127,8 @@ extern "C" {
 
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
+
+#ifndef CLIENT_MODE
 
 static int hora_a_minutos(const char *hora) {
     int h = 0, m = 0;
@@ -718,6 +726,8 @@ static void manejar_cliente(int fd) {
     }
     close(fd);
 }
+#endif // CLIENT_MODE
+
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 
