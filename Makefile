@@ -56,7 +56,7 @@ build/servidor.exe: $(SERVER_OBJ)
 build/cliente.exe: $(CLIENT_OBJ)
 	$(CXX) $(CLIENT_OBJ) $(LIBS) -o $@
 
-run: build/main.exe
+run: build/main.exe build/servidor.exe
 	./build/main.exe
 
 run-server: build/servidor.exe build/main.exe
@@ -64,7 +64,6 @@ run-server: build/servidor.exe build/main.exe
 	@./build/servidor.exe & echo $$! > $(SERVER_PID_FILE)
 	@sleep 1
 	@./build/main.exe
-	@echo "Admin cerrado. Servidor sigue en segundo plano (usa 'make stop-server' para pararlo)."
 
 run-cliente: build/cliente.exe
 	./build/cliente.exe
