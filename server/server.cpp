@@ -244,8 +244,30 @@ static void handle_register(const char *dni, const char *usuario,
     sqlite3_finalize(stmt);
 
     if (!fecha_aux[0]) {
-        snprintf(respuesta, MAXDATASIZE, "ERROR|No se pudo generar fecha de creacion");
+        snprintf(respuesta, MAXDATASIZE, "No se pudo generar fecha de creacion");
         return;
+    }
+
+    const char *sql_check_usr = "SELECT 1 FROM Cliente WHERE nombre_cliente=?;";
+    if (sqlite3_prepare_v2(db, sql_check_usr, -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, usuario, -1, SQLITE_STATIC);
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            sqlite3_finalize(stmt);
+            snprintf(respuesta, MAXDATASIZE, "El nombre de usuario '%s' ya esta en uso", usuario);
+            return;
+        }
+        sqlite3_finalize(stmt);
+    }
+
+    const char *sql_check_dni = "SELECT 1 FROM Cliente WHERE dni=?;";
+    if (sqlite3_prepare_v2(db, sql_check_dni, -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, dni, -1, SQLITE_STATIC);
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            sqlite3_finalize(stmt);
+            snprintf(respuesta, MAXDATASIZE, "El DNI '%s' ya tiene una cuenta registrada", dni);
+            return;
+        }
+        sqlite3_finalize(stmt);
     }
 
     auth_generar_hash(password, fecha_aux, hash_final);
@@ -264,10 +286,18 @@ static void handle_register(const char *dni, const char *usuario,
     sqlite3_bind_text(stmt, 4, fecha_aux,  -1, SQLITE_TRANSIENT);
 
     if (sqlite3_step(stmt) != SQLITE_DONE) {
-        snprintf(respuesta, MAXDATASIZE, "ERROR|No se pudo registrar cliente: %s", sqlite3_errmsg(db));
+        const char *sql_err = sqlite3_errmsg(db);
+        if (strstr(sql_err, "nombre_cliente")) {
+            snprintf(respuesta, MAXDATASIZE, "ERROR|Ya existe una cuenta con ese nombre de usuario");
+        } else if (strstr(sql_err, "dni")) {
+            snprintf(respuesta, MAXDATASIZE, "ERROR|Ya existe una cuenta con ese DNI");
+        } else {
+            snprintf(respuesta, MAXDATASIZE, "ERROR|No se pudo completar el registro");
+        }
         sqlite3_finalize(stmt);
         return;
     }
+
     sqlite3_finalize(stmt);
 
     snprintf(respuesta, MAXDATASIZE, "OK|Cliente registrado exitosamente");

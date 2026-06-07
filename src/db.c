@@ -43,7 +43,7 @@ void db_crear_tablas() {
     "CREATE TABLE IF NOT EXISTS Cliente ("
     "id_cliente INTEGER PRIMARY KEY AUTOINCREMENT,"
     "dni TEXT UNIQUE NOT NULL,"
-    "nombre_cliente TEXT NOT NULL,"
+    "nombre_cliente TEXT UNIQUE NOT NULL,"
     "password TEXT NOT NULL,"
     "edad INTEGER,"
     "activo INTEGER DEFAULT 1,"

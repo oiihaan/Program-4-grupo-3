@@ -33,6 +33,8 @@ void cliente_cerrar(int sockfd);
 void cliente_set_socket(int sockfd);
 int cliente_login();
 void cliente_registrar_nuevo();
+int cliente_intentos_agotados();
+
 
 #ifdef __cplusplus
 }

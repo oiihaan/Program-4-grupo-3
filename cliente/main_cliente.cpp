@@ -450,9 +450,18 @@ int main() {
 
         if (opcion_inicio == 1) {
             autenticado = cliente_login();
-            if (!autenticado) printf("[ERROR] No se pudo iniciar sesion.\n");
+            if (!autenticado && cliente_intentos_agotados()) {
+                printf("\n[BLOQUEADO] Has superado el numero maximo de intentos. Adios.\n");
+                cliente_cerrar(sock);
+                return 1;
+            }
         } else if (opcion_inicio == 2) {
             cliente_registrar_nuevo();
+            if (cliente_intentos_agotados()) {
+                printf("\n[BLOQUEADO] Has superado el numero maximo de intentos. Adios.\n");
+                cliente_cerrar(sock);
+                return 1;
+            }
         } else if (opcion_inicio == 0) {
             cliente_cerrar(sock);
             return 0;

@@ -165,6 +165,36 @@ extern "C" void cliente_set_socket(int sockfd) {
     g_cliente_socket = sockfd;
 }
 
+static int leer_max_intentos() {
+    int max = 3;
+    FILE *f = fopen("server.conf", "r");
+    if (!f) return max;
+    char linea[256], clave[128], valor[128];
+    while (fgets(linea, sizeof(linea), f)) {
+        if (linea[0] == '#' || linea[0] == '\n') continue;
+        if (sscanf(linea, "%127[^=]=%127s", clave, valor) == 2) {
+            if (strcmp(clave, "max_intentos") == 0) { max = atoi(valor); break; }
+        }
+    }
+    fclose(f);
+    return max;
+}
+
+static int g_intentos_fallidos = 0;
+
+static int intentos_disponibles() {
+    int max = leer_max_intentos();
+    int restantes = max - g_intentos_fallidos;
+    if (restantes <= 0) return 0;
+    if (restantes < max)
+        printf("[!] Intentos restantes: %d\n", restantes);
+    return 1;
+}
+
+int cliente_intentos_agotados() {
+    return g_intentos_fallidos >= leer_max_intentos();
+}
+
 extern "C" int cliente_login() {
     char usuario[64], password[64];
     char comando[256], respuesta[256];
@@ -174,7 +204,9 @@ extern "C" int cliente_login() {
         return 0;
     }
 
-    printf("\n--- LOGIN DE CLIENTE ---\n");
+    if (!intentos_disponibles()) return 0;
+
+    printf("\n--- INICIAR SESION ---\n");
     printf("Usuario (nombre): ");
     fflush(stdout);
     scanf("%63s", usuario);
@@ -196,10 +228,12 @@ extern "C" int cliente_login() {
             printf("[OK] Bienvenido, %s!\n", usuario);
             return 1;
         } else if (strncmp(respuesta, "USER_NOT_FOUND", 14) == 0) {
-            printf("[ERROR] Usuario no encontrado.\n");
+            g_intentos_fallidos++;
+            printf("[ERROR] Usuario '%s' no encontrado.\n", usuario);
             return 0;
         } else {
-            printf("[ERROR] %s\n", respuesta);
+            g_intentos_fallidos++;
+            printf("[ERROR] Contrasena incorrecta.\n");
             return 0;
         }
     } else {
@@ -209,7 +243,7 @@ extern "C" int cliente_login() {
 }
 
 extern "C" void cliente_registrar_nuevo() {
-    char dni[32], usuario[64], password_plano[64];
+    char dni[32], usuario[64], password[64], password2[64];
     char comando[256], respuesta[256];
 
     if (g_cliente_socket == -1) {
@@ -217,20 +251,49 @@ extern "C" void cliente_registrar_nuevo() {
         return;
     }
 
-    printf("\n--- REGISTRO DE NUEVO CLIENTE ---\n");
+    if (!intentos_disponibles()) return;
+
+    printf("\n--- REGISTRO DE NUEVO USUARIO ---\n");
     do {
         printf("DNI: "); scanf("%31s", dni); limpiarBuffer();
     } while (!dni_es_valido(dni));
-    printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
-    printf("Contraseña: "); scanf("%63s", password_plano); limpiarBuffer();
 
-    snprintf(comando, sizeof(comando), "REGISTER_CLIENTE|%s|%s|%s\n", dni, usuario, password_plano);
+    printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
+
+    int pass_ok = 0;
+    while (!pass_ok) {
+        char *tmp1 = capturar_contrasena();
+        if (!tmp1) { printf("[ERROR] Error al capturar contrasena.\n"); return; }
+        strncpy(password, tmp1, sizeof(password) - 1);
+        password[sizeof(password) - 1] = '\0';
+        free(tmp1);
+
+        printf("Repite la contrasena: ");
+        char *tmp2 = capturar_contrasena();
+        if (!tmp2) { printf("[ERROR] Error al capturar contrasena.\n"); return; }
+        strncpy(password2, tmp2, sizeof(password2) - 1);
+        password2[sizeof(password2) - 1] = '\0';
+        free(tmp2);
+
+        if (strcmp(password, password2) == 0) {
+            pass_ok = 1;
+        } else {
+            g_intentos_fallidos++;
+            printf("[ERROR] Las contrasenas no coinciden.");
+            if (!intentos_disponibles()) return;
+            printf(" Intentalo de nuevo.\n");
+        }
+    }
+
+    snprintf(comando, sizeof(comando), "REGISTER_CLIENTE|%s|%s|%s\n", dni, usuario, password);
 
     if (cliente_enviar_recibir(g_cliente_socket, comando, respuesta, sizeof(respuesta)) > 0) {
         if (strncmp(respuesta, "OK", 2) == 0) {
-            printf("[OK] Cliente creado exitosamente. Intente login nuevamente.\n");
+            printf("[OK] Cuenta creada correctamente. Ya puedes iniciar sesion.\n");
         } else {
-            printf("[ERROR] %s\n", respuesta);
+            g_intentos_fallidos++;
+            printf("[ERROR] %s\n", respuesta );
+            intentos_disponibles();
         }
     } else {
         printf("[ERROR] Fallo en la comunicación con el servidor.\n");
