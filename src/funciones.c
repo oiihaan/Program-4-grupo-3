@@ -97,13 +97,22 @@ int dni_es_valido(const char *dni)
             printf("[ERROR] DNI invalido. Los primeros 8 caracteres deben ser numeros.\n");
             return 0;
         }
+        numero = numero * 10 + (dni[i] - '0');
+    }
 
-        unsigned char novenoCaracter = (unsigned char)dni[8];
-        if (!isalpha(novenoCaracter))
-        {
-            printf("[ERROR] DNI invalido. El noveno caracter debe ser una letra.\n");
-            return 0; // Falla la validación
-        }
+    unsigned char novenoCaracter = (unsigned char)dni[8];
+    if (!isalpha(novenoCaracter))
+    {
+        printf("[ERROR] DNI invalido. El noveno caracter debe ser una letra.\n");
+        return 0;
+    }
+
+    char letra_correcta = letras[numero % 23];
+    if (toupper(novenoCaracter) != letra_correcta)
+    {
+        printf("[ERROR] DNI invalido. La letra no corresponde al numero (deberia ser %c).\n",
+               letra_correcta);
+        return 0;
     }
 
     return 1;

@@ -29,6 +29,7 @@ char* log_get_usuario() {
 void log_escribir(const char *accion) {
     const char *usuario = log_get_usuario();
     FILE *f = abrirLog();
+    if (f == NULL) return; 
  
     time_t ahora = time(NULL);
     struct tm *t  = localtime(&ahora); // estructura de la libreria de time , digamos qeu es una estructura con todas opciones de fecha
@@ -43,6 +44,7 @@ void log_escribir(const char *accion) {
 void log_login_escribir(const char *usuario, const char *accion){
 
     FILE *f = abrirLog();
+    if (f == NULL) return;
 
     time_t ahora = time(NULL);
     struct tm *t  = localtime(&ahora);
