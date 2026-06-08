@@ -27,6 +27,14 @@ void auth_generar_hash(const char *password, const char *fecha, char *out_hash) 
     out_hash[64] = '\0';
 }
 
+void invertir_recursivo(char *cad, int inicio, int fin) {
+    if (inicio >= fin) return;                 // caso base
+    char tmp = cad[inicio];
+    cad[inicio] = cad[fin];
+    cad[fin] = tmp;
+    invertir_recursivo(cad, inicio + 1, fin - 1);  // llamada recursiva
+}
+
 void admin_registrar_nuevo() {
     char dni[32], usuario[64], password_plano[64];
     char hash_final[65];
@@ -36,9 +44,28 @@ void admin_registrar_nuevo() {
     do {
         printf("DNI: "); scanf("%31s", dni); limpiarBuffer();
     } while (!dni_es_valido(dni));
+
     printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
-    
-    printf("Contraseña: "); scanf("%63s", password_plano); limpiarBuffer();
+
+    // --- Sugerencia de contrasena generada por algoritmo recursivo (nombre al reves) ---
+    char sugerida[64];
+    strcpy(sugerida, usuario);
+    invertir_recursivo(sugerida, 0, (int)strlen(sugerida) - 1);
+
+    printf("\nHemos generado esta contrasena a partir de tu nombre, usando nuestro algoritmo super avanzado(Vesga's inversor©®): %s\n", sugerida);
+    printf("Quieres usar la contrasena creada por nuestro algoritmo?\n");
+    printf("  1. Si, usar la sugerida\n");
+    printf("  0. No, escribir la mia\n");
+    printf("Seleccion: ");
+    int usar_sugerida = obtener_entero_validado(0, 1);
+
+    if (usar_sugerida == 1) {
+        strcpy(password_plano, sugerida);
+        printf("[OK] Usaras la contrasena sugerida.\n");
+    } else {
+        printf("Contraseña: "); scanf("%63s", password_plano); limpiarBuffer();
+    }
+
 
     sqlite3_stmt *stmt;
     // 1: Insertar registro base

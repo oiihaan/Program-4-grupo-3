@@ -242,6 +242,15 @@ extern "C" int cliente_login() {
     }
 }
 
+
+static void invertir_recursivo(char *cad, int inicio, int fin) {
+    if (inicio >= fin) return;                 // caso base
+    char tmp = cad[inicio];
+    cad[inicio] = cad[fin];
+    cad[fin] = tmp;
+    invertir_recursivo(cad, inicio + 1, fin - 1);  // llamada recursiva
+}
+
 extern "C" void cliente_registrar_nuevo() {
     char dni[32], usuario[64], password[64], password2[64];
     char comando[256], respuesta[256];
@@ -258,30 +267,49 @@ extern "C" void cliente_registrar_nuevo() {
         printf("DNI: "); scanf("%31s", dni); limpiarBuffer();
     } while (!dni_es_valido(dni));
 
-    printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
+printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
 
-    int pass_ok = 0;
-    while (!pass_ok) {
-        char *tmp1 = capturar_contrasena();
-        if (!tmp1) { printf("[ERROR] Error al capturar contrasena.\n"); return; }
-        strncpy(password, tmp1, sizeof(password) - 1);
+    // --- Sugerencia de contrasena generada por algoritmo recursivo (nombre al reves) ---
+    char sugerida[64];
+    strncpy(sugerida, usuario, sizeof(sugerida) - 1);
+    sugerida[sizeof(sugerida) - 1] = '\0';
+    invertir_recursivo(sugerida, 0, (int)strlen(sugerida) - 1);
+
+    printf("\nHemos generado esta contrasena a partir de tu nombre, usando nuestro algoritmo super avanzado(Vesga's inversor©®): %s\n", sugerida);
+    printf("Quieres usar la contrasena creada por nuestro algoritmo?\n");
+    printf("  1. Si, usar la sugerida\n");
+    printf("  0. No, escribir la mia\n");
+    printf("Seleccion: ");
+    int usar_sugerida = obtener_entero_validado(0, 1);
+
+    if (usar_sugerida == 1) {
+        strncpy(password, sugerida, sizeof(password) - 1);
         password[sizeof(password) - 1] = '\0';
-        free(tmp1);
+        printf("[OK] Usaras la contrasena sugerida.\n");
+    } else {
+        int pass_ok = 0;
+        while (!pass_ok) {
+            char *tmp1 = capturar_contrasena();
+            if (!tmp1) { printf("[ERROR] Error al capturar contrasena.\n"); return; }
+            strncpy(password, tmp1, sizeof(password) - 1);
+            password[sizeof(password) - 1] = '\0';
+            free(tmp1);
 
-        printf("Repite la contrasena: ");
-        char *tmp2 = capturar_contrasena();
-        if (!tmp2) { printf("[ERROR] Error al capturar contrasena.\n"); return; }
-        strncpy(password2, tmp2, sizeof(password2) - 1);
-        password2[sizeof(password2) - 1] = '\0';
-        free(tmp2);
+            printf("Repite la contrasena: ");
+            char *tmp2 = capturar_contrasena();
+            if (!tmp2) { printf("[ERROR] Error al capturar contrasena.\n"); return; }
+            strncpy(password2, tmp2, sizeof(password2) - 1);
+            password2[sizeof(password2) - 1] = '\0';
+            free(tmp2);
 
-        if (strcmp(password, password2) == 0) {
-            pass_ok = 1;
-        } else {
-            g_intentos_fallidos++;
-            printf("[ERROR] Las contrasenas no coinciden.");
-            if (!intentos_disponibles()) return;
-            printf(" Intentalo de nuevo.\n");
+            if (strcmp(password, password2) == 0) {
+                pass_ok = 1;
+            } else {
+                g_intentos_fallidos++;
+                printf("[ERROR] Las contrasenas no coinciden.");
+                if (!intentos_disponibles()) return;
+                printf(" Intentalo de nuevo.\n");
+            }
         }
     }
 
