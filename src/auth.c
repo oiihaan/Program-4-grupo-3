@@ -95,33 +95,13 @@ int auth_login() {
     printf("=========================================\n");
 
     while (intentos > 0) {
-        int usuario_existe = 0;
-        do {
-            printf("\nUsuario-Admin: ");
-            scanf("%63s", usuario);
-            limpiarBuffer();
-
-            sqlite3_stmt *stmt_validar;
-            const char *sql_validar =
-                "SELECT 1 FROM Admin WHERE nombre_usuario = ? AND activo = 1;";
-
-            if (sqlite3_prepare_v2(db, sql_validar, -1, &stmt_validar, NULL) == SQLITE_OK) {
-                sqlite3_bind_text(stmt_validar, 1, usuario, -1, SQLITE_STATIC);
-                if (sqlite3_step(stmt_validar) == SQLITE_ROW) {
-                    usuario_existe = 1;
-                }
-                sqlite3_finalize(stmt_validar);
-            }
-
-            if (!usuario_existe) {
-                printf("[ERROR] Usuario administrador no encontrado. Intente de nuevo.\n");
-            }
-        } while (!usuario_existe);
+        printf("\nUsuario-Admin: ");
+        scanf("%63s", usuario);
+        limpiarBuffer();
 
         password = capturar_contrasena();
-
         if (password == NULL) {
-            printf("[ERROR] La contraseña no puede estar vacía.\n");
+            printf("[ERROR] La contrasena no puede estar vacia.\n");
             continue;
         }
 
@@ -133,16 +113,14 @@ int auth_login() {
         int autenticado = 0;
         if (sqlite3_prepare_v2(db, sql_admin, -1, &stmt, NULL) == SQLITE_OK) {
             sqlite3_bind_text(stmt, 1, usuario, -1, SQLITE_STATIC);
-
             if (sqlite3_step(stmt) == SQLITE_ROW) {
                 const char *hash_db  = (const char *)sqlite3_column_text(stmt, 0);
                 const char *fecha_db = (const char *)sqlite3_column_text(stmt, 1);
-
-                char hash_calculado[65];
-                auth_generar_hash(password, fecha_db, hash_calculado);
-
-                if (strcmp(hash_db, hash_calculado) == 0) {
-                    autenticado = 1;
+                if (hash_db && fecha_db) {
+                    char hash_calculado[65];
+                    auth_generar_hash(password, fecha_db, hash_calculado);
+                    if (strcmp(hash_db, hash_calculado) == 0)
+                        autenticado = 1;
                 }
             }
             sqlite3_finalize(stmt);
@@ -160,8 +138,10 @@ int auth_login() {
             const char *sql_dni = "SELECT dni FROM Admin WHERE nombre_usuario=? AND activo=1;";
             if (sqlite3_prepare_v2(db, sql_dni, -1, &stmt, NULL) == SQLITE_OK) {
                 sqlite3_bind_text(stmt, 1, usuario, -1, SQLITE_STATIC);
-                if (sqlite3_step(stmt) == SQLITE_ROW)
-                    strncpy(dni_admin_sesion, (const char*)sqlite3_column_text(stmt, 0), sizeof(dni_admin_sesion) - 1);
+                if (sqlite3_step(stmt) == SQLITE_ROW) {
+                    const unsigned char *d = sqlite3_column_text(stmt, 0);
+                    if (d) strncpy(dni_admin_sesion, (const char*)d, sizeof(dni_admin_sesion) - 1);
+                }
                 sqlite3_finalize(stmt);
             }
             return 1;
@@ -169,7 +149,7 @@ int auth_login() {
             intentos--;
             if (intentos > 0)
                 printf("[ERROR] Credenciales incorrectas. Intentos restantes: %d\n", intentos);
-            char msg[47];
+            char msg[64];
             snprintf(msg, sizeof(msg), "Login fallido - intentos restantes: %d", intentos);
             log_login_escribir(usuario, msg);
         }
