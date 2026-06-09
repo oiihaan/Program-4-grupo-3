@@ -34,6 +34,8 @@ void cliente_set_socket(int sockfd);
 int cliente_login();
 void cliente_registrar_nuevo();
 int cliente_intentos_agotados();
+const char* cliente_get_nombre_sesion(void);
+void cliente_cambiar_password(int sockfd);
 
 
 #ifdef __cplusplus

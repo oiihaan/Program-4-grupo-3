@@ -454,75 +454,63 @@ void reservas_editar() {
     scanf("%d", &opcion_editar);
     getchar();
 
-    char sql_update[512];
-    char nuevo_valor[128];
+    const char *campo_sql = NULL;
+    char nuevo_valor_texto[128] = "";
+    int nuevo_valor_int = 0;
+    int es_texto = 1;
 
     switch (opcion_editar) {
         case 1:
+            campo_sql = "dni_ciudadano";
             do {
                 printf("Nuevo DNI: ");
-                scanf(" %127[^\n]", nuevo_valor);
+                scanf(" %127[^\n]", nuevo_valor_texto);
                 limpiarBuffer();
-            } while (!dni_es_valido(nuevo_valor));
-            snprintf(sql_update, sizeof(sql_update),
-                "UPDATE Reserva SET dni_ciudadano='%s' WHERE id_reserva=%d;",
-                nuevo_valor, id_reserva);
+            } while (!dni_es_valido(nuevo_valor_texto));
             break;
         case 2:
+            campo_sql = "fecha";
             do {
                 printf("Nueva fecha (YYYY-MM-DD): ");
-                scanf(" %127[^\n]", nuevo_valor);
+                scanf(" %127[^\n]", nuevo_valor_texto);
                 limpiarBuffer();
-            } while (!fecha_es_valida(nuevo_valor) || !fecha_es_hoy_o_posterior(nuevo_valor));
-            snprintf(sql_update, sizeof(sql_update),
-                "UPDATE Reserva SET fecha='%s' WHERE id_reserva=%d;",
-                nuevo_valor, id_reserva);
+            } while (!fecha_es_valida(nuevo_valor_texto) || !fecha_es_hoy_o_posterior(nuevo_valor_texto));
             break;
-
         case 3:
-            do{
-            printf("Nueva hora de entrada (HH:MM): ");
-            scanf(" %10[^\n]", nuevo_valor);
-            getchar();
-            }while(verificarHora(nuevo_valor) == 1);
-                if (!validar_horario(nuevo_valor)) {
+            campo_sql = "franja_inicio";
+            do {
+                printf("Nueva hora de entrada (HH:MM): ");
+                scanf(" %10[^\n]", nuevo_valor_texto);
+                getchar();
+            } while (verificarHora(nuevo_valor_texto) == 1);
+            if (!validar_horario(nuevo_valor_texto)) {
                 printf("[ERROR] Hora fuera del horario permitido.\n");
                 return;
             }
-            snprintf(sql_update, sizeof(sql_update),
-                "UPDATE Reserva SET franja_inicio='%s' WHERE id_reserva=%d;",
-                nuevo_valor, id_reserva);
             break;
-
         case 4:
-            do{
-            printf("Nueva hora de salida (HH:MM): ");
-            scanf(" %127[^\n]", nuevo_valor);
-            getchar();
-            }while(verificarHora(nuevo_valor) == 1);
-                if (!validar_horario(nuevo_valor)) {
-                    printf("[ERROR] Hora fuera del horario permitido.\n");
-                    return;
-                }
-            snprintf(sql_update, sizeof(sql_update),
-                "UPDATE Reserva SET franja_fin='%s' WHERE id_reserva=%d;",
-                nuevo_valor, id_reserva);
+            campo_sql = "franja_fin";
+            do {
+                printf("Nueva hora de salida (HH:MM): ");
+                scanf(" %127[^\n]", nuevo_valor_texto);
+                getchar();
+            } while (verificarHora(nuevo_valor_texto) == 1);
+            if (!validar_horario(nuevo_valor_texto)) {
+                printf("[ERROR] Hora fuera del horario permitido.\n");
+                return;
+            }
             break;
-        case 5: {
-            int nuevas_personas;
+        case 5:
+            campo_sql = "num_personas";
+            es_texto = 0;
             printf("Nuevo número de personas: ");
-            if (scanf("%d", &nuevas_personas) != 1 || nuevas_personas < 1) {
+            if (scanf("%d", &nuevo_valor_int) != 1 || nuevo_valor_int < 1) {
                 printf("[ERROR] Numero de personas invalido.\n");
                 limpiarBuffer();
                 return;
             }
             getchar();
-            
-            snprintf(sql_update, sizeof(sql_update),
-                "UPDATE Reserva SET num_personas=%d WHERE id_reserva=%d;",
-                nuevas_personas, id_reserva);
             break;
-            }
         case 0:
             printf("Edición cancelada.\n");
             return;
@@ -531,12 +519,29 @@ void reservas_editar() {
             return;
     }
 
-    if (db_ejecutar(sql_update)) {
-        printf("[OK] Reserva %d actualizada correctamente.\n", id_reserva);
-        char msg[256];
-        snprintf(msg, sizeof(msg), "Ha editado los datos de la reserva con ID %d", id_reserva);
-        log_escribir(msg);
+    // El nombre del campo viene de nuestro código (no del usuario); el valor va como parámetro
+    char sql_final[256];
+    snprintf(sql_final, sizeof(sql_final),
+        "UPDATE Reserva SET %s=? WHERE id_reserva=?;", campo_sql);
+
+    sqlite3_stmt *stmt_upd;
+    if (sqlite3_prepare_v2(db, sql_final, -1, &stmt_upd, NULL) == SQLITE_OK) {
+        if (es_texto)
+            sqlite3_bind_text(stmt_upd, 1, nuevo_valor_texto, -1, SQLITE_STATIC);
+        else
+            sqlite3_bind_int(stmt_upd, 1, nuevo_valor_int);
+        sqlite3_bind_int(stmt_upd, 2, id_reserva);
+
+        if (sqlite3_step(stmt_upd) == SQLITE_DONE) {
+            printf("[OK] Reserva %d actualizada correctamente.\n", id_reserva);
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Ha editado los datos de la reserva con ID %d", id_reserva);
+            log_escribir(msg);
+        } else {
+            printf("[ERROR] No se pudo actualizar la reserva.\n");
+        }
+        sqlite3_finalize(stmt_upd);
     } else {
-        printf("[ERROR] No se pudo actualizar la reserva.\n");
+        printf("[ERROR] Error al preparar la consulta.\n");
     }
 }

@@ -579,6 +579,51 @@ static void handle_solicitar_licencia(const char *dni, const char *id_tipo_str, 
     }
 }
 
+static void handle_cambiar_password(const char *dni, const char *pass_actual,
+                                     const char *nueva_pass, char *respuesta) {
+    sqlite3_stmt *stmt;
+    char hash_db[65] = "", fecha_db[32] = "";
+
+    const char *sql_sel = "SELECT password, fecha_creacion FROM Cliente WHERE dni=? AND activo=1;";
+    if (sqlite3_prepare_v2(db, sql_sel, -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, dni, -1, SQLITE_STATIC);
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *h = (const char*)sqlite3_column_text(stmt, 0);
+            const char *f = (const char*)sqlite3_column_text(stmt, 1);
+            if (h) strncpy(hash_db,  h, sizeof(hash_db)  - 1);
+            if (f) strncpy(fecha_db, f, sizeof(fecha_db) - 1);
+        }
+        sqlite3_finalize(stmt);
+    }
+
+    if (!hash_db[0] || !fecha_db[0]) {
+        snprintf(respuesta, MAXDATASIZE, "ERROR|No se encontro el usuario");
+        return;
+    }
+
+    char hash_calc[65];
+    auth_generar_hash(pass_actual, fecha_db, hash_calc);
+    if (strcmp(hash_db, hash_calc) != 0) {
+        snprintf(respuesta, MAXDATASIZE, "ERROR|Contrasena actual incorrecta");
+        return;
+    }
+
+    // Mismo fecha_creacion como salt para mantener consistencia
+    char nuevo_hash[65];
+    auth_generar_hash(nueva_pass, fecha_db, nuevo_hash);
+
+    const char *sql_upd = "UPDATE Cliente SET password=? WHERE dni=?;";
+    if (sqlite3_prepare_v2(db, sql_upd, -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, nuevo_hash, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, dni,        -1, SQLITE_STATIC);
+        if (sqlite3_step(stmt) == SQLITE_DONE)
+            snprintf(respuesta, MAXDATASIZE, "OK|Contrasena actualizada correctamente");
+        else
+            snprintf(respuesta, MAXDATASIZE, "ERROR|No se pudo actualizar la contrasena");
+        sqlite3_finalize(stmt);
+    }
+}
+
 static void handle_mis_licencias(const char *dni, char *respuesta) {
     sqlite3_stmt *stmt;
     const char *sql =
@@ -740,6 +785,17 @@ static void manejar_cliente(int fd) {
         }
         else if (strcmp(cmd, "MIS_LICENCIAS") == 0) {
             handle_mis_licencias(dni_sesion, respuesta);
+        }
+        else if (strcmp(cmd, "CAMBIAR_PASSWORD") == 0) {
+            char *pass_actual = strtok(NULL, "|");
+            char *nueva_pass  = strtok(NULL, "|");
+            if (pass_actual && nueva_pass) {
+                handle_cambiar_password(dni_sesion, pass_actual, nueva_pass, respuesta);
+                if (strncmp(respuesta, "OK", 2) == 0)
+                    log_escribir("Ha cambiado su contrasena");
+            } else {
+                snprintf(respuesta, MAXDATASIZE, "ERROR|CAMBIAR_PASSWORD: faltan parametros");
+            }
         }
         else {
             snprintf(respuesta, MAXDATASIZE, "ERROR|Comando desconocido: %s", cmd);

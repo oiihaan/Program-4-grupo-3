@@ -430,6 +430,7 @@ int main() {
     cliente_set_socket(sock);
 
     int autenticado = 0;
+    cliente::Cliente *sesion = NULL;
     while (!autenticado) {
         server_verificar_estado();
         if (!server_get_estado()) {
@@ -450,6 +451,9 @@ int main() {
 
         if (opcion_inicio == 1) {
             autenticado = cliente_login();
+            if (autenticado) {
+                sesion = new cliente::Cliente(0, 0, cliente_get_nombre_sesion(), "", "");
+            }
             if (!autenticado && cliente_intentos_agotados()) {
                 printf("\n[BLOQUEADO] Has superado el numero maximo de intentos. Adios.\n");
                 cliente_cerrar(sock);
@@ -478,11 +482,12 @@ int main() {
             break;
         }
 
-        printf("\n=== MENU PRINCIPAL ===\n");
+        printf("\n=== MENU PRINCIPAL — %s ===\n", sesion ? sesion->getNombreCliente() : "");
         printf("1. Ver espacios disponibles\n");
         printf("2. Mis reservas\n");
         printf("3. Noticias\n");
         printf("4. Licencias\n");
+        printf("5. Mi cuenta\n");
         printf("0. Cerrar sesion\n");
         printf("Seleccion: ");
 
@@ -494,11 +499,23 @@ int main() {
             case 2: submenu_reservas(sock);  break;
             case 3: submenu_noticias(sock);  break;
             case 4: submenu_licencias(sock); break;
+            case 5: {
+                int sub_op;
+                printf("\n--- MI CUENTA (%s) ---\n", sesion ? sesion->getNombreCliente() : "");
+                printf("1. Cambiar contrasena\n");
+                printf("0. Volver\n");
+                printf("Seleccion: ");
+                if (scanf("%d", &sub_op) != 1) { limpiarBuffer(); break; }
+                limpiarBuffer();
+                if (sub_op == 1) cliente_cambiar_password(sock);
+                break;
+            }
             case 0: printf("\n[INFO] Cerrando sesion. Hasta pronto!\n"); break;
             default: printf("[!] Opcion invalida.\n");
         }
     } while (opcion != 0);
 
+    if (sesion) { delete sesion; sesion = NULL; }
     cliente_cerrar(sock);
     return 0;
 }

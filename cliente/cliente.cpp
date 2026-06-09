@@ -18,8 +18,8 @@ extern "C" {
 
 using namespace cliente;
 
-// Variable global para almacenar el socket del cliente
 int g_cliente_socket = -1;
+static char g_nombre_sesion[64] = "";
 
 static void *get_in_addr(struct sockaddr *sa)
 {
@@ -226,6 +226,8 @@ extern "C" int cliente_login() {
     if (cliente_enviar_recibir(g_cliente_socket, comando, respuesta, sizeof(respuesta)) > 0) {
         if (strncmp(respuesta, "OK", 2) == 0) {
             printf("[OK] Bienvenido, %s!\n", usuario);
+            strncpy(g_nombre_sesion, usuario, sizeof(g_nombre_sesion) - 1);
+            g_nombre_sesion[sizeof(g_nombre_sesion) - 1] = '\0';
             return 1;
         } else if (strncmp(respuesta, "USER_NOT_FOUND", 14) == 0) {
             g_intentos_fallidos++;
@@ -325,5 +327,60 @@ printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
         }
     } else {
         printf("[ERROR] Fallo en la comunicación con el servidor.\n");
+    }
+}
+
+extern "C" const char* cliente_get_nombre_sesion(void) {
+    return g_nombre_sesion;
+}
+
+extern "C" void cliente_cambiar_password(int sockfd) {
+    char pass_actual[64], nueva_pass[64], confirmar[64];
+    char comando[256], respuesta[256];
+
+    if (sockfd == -1) {
+        printf("[ERROR] Socket no valido.\n");
+        return;
+    }
+
+    printf("\n--- CAMBIAR CONTRASENA ---\n");
+    printf("Contrasena actual:\n");
+    char *tmp = capturar_contrasena();
+    if (!tmp) { printf("[ERROR] Error al capturar contrasena.\n"); return; }
+    strncpy(pass_actual, tmp, sizeof(pass_actual) - 1);
+    pass_actual[sizeof(pass_actual) - 1] = '\0';
+    free(tmp);
+
+    int ok = 0;
+    while (!ok) {
+        printf("Nueva contrasena:\n");
+        tmp = capturar_contrasena();
+        if (!tmp) { printf("[ERROR] Error al capturar contrasena.\n"); return; }
+        strncpy(nueva_pass, tmp, sizeof(nueva_pass) - 1);
+        nueva_pass[sizeof(nueva_pass) - 1] = '\0';
+        free(tmp);
+
+        printf("Confirmar nueva contrasena:\n");
+        tmp = capturar_contrasena();
+        if (!tmp) { printf("[ERROR] Error al capturar contrasena.\n"); return; }
+        strncpy(confirmar, tmp, sizeof(confirmar) - 1);
+        confirmar[sizeof(confirmar) - 1] = '\0';
+        free(tmp);
+
+        if (strcmp(nueva_pass, confirmar) == 0) {
+            ok = 1;
+        } else {
+            printf("[ERROR] Las contrasenas no coinciden. Intentalo de nuevo.\n");
+        }
+    }
+
+    snprintf(comando, sizeof(comando), "CAMBIAR_PASSWORD|%s|%s\n", pass_actual, nueva_pass);
+    if (cliente_enviar_recibir(sockfd, comando, respuesta, sizeof(respuesta)) > 0) {
+        if (strncmp(respuesta, "OK|", 3) == 0)
+            printf("[OK] %s\n", respuesta + 3);
+        else if (strncmp(respuesta, "ERROR|", 6) == 0)
+            printf("[ERROR] %s\n", respuesta + 6);
+    } else {
+        printf("[ERROR] Fallo de comunicacion con el servidor.\n");
     }
 }
