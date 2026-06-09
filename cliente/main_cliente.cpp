@@ -351,13 +351,18 @@ static void ver_tipos_licencia(int sock) {
     if (total == 0) printf("  (no hay tipos de licencia disponibles)\n");
 }
 
-static void solicitar_licencia(int sock) {
+static void solicitar_licencia(int sock, cliente::Usuario *sesion_usr) {
     ver_tipos_licencia(sock);
 
     int id_tipo;
     printf("\nID del tipo de licencia (0 para volver): ");
     if (scanf("%d", &id_tipo) != 1 || id_tipo == 0) { limpiarBuffer(); return; }
     limpiarBuffer();
+
+    if (id_tipo == 5 && sesion_usr && !sesion_usr->puedeVerPolitica()) {
+        printf("[AVISO] La Licencia de Armas es solo para mayores de edad.\n");
+        return;
+    }
 
     char comando[64], respuesta[MAXDATASIZE];
     snprintf(comando, sizeof(comando), "SOLICITAR_LICENCIA|%d\n", id_tipo);
@@ -402,7 +407,7 @@ static void ver_mis_licencias(int sock) {
     if (total == 0) printf("  (no tienes licencias)\n");
 }
 
-static void submenu_licencias(int sock) {
+static void submenu_licencias(int sock, cliente::Usuario *sesion) {
     int opcion;
     do {
         server_verificar_estado();
@@ -424,7 +429,7 @@ static void submenu_licencias(int sock) {
 
         switch (opcion) {
             case 1: ver_tipos_licencia(sock); break;
-            case 2: solicitar_licencia(sock); break;
+            case 2: solicitar_licencia(sock,sesion); break;
             case 3: ver_mis_licencias(sock);  break;
             case 0: break;
             default: printf("[!] Opcion invalida.\n");
@@ -526,7 +531,7 @@ int main() {
             case 1: submenu_espacios(sock);  break;
             case 2: submenu_reservas(sock);  break;
             case 3: submenu_noticias(sock, sesion);  break;
-            case 4: submenu_licencias(sock); break;
+            case 4: submenu_licencias(sock,sesion); break;
             case 5: {
                 int sub_op;
                 printf("\n--- MI CUENTA (%s) — %s ---\n", sesion ? sesion->getNombre() : "", sesion ? sesion->getTipo() : "");
