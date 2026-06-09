@@ -45,7 +45,7 @@ void db_crear_tablas() {
     "dni TEXT UNIQUE NOT NULL,"
     "nombre_cliente TEXT UNIQUE NOT NULL,"
     "password TEXT NOT NULL,"
-    "edad INTEGER,"
+    "fecha_nacimiento TEXT,"
     "activo INTEGER DEFAULT 1,"
     "fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP"
     ");"

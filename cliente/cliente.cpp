@@ -29,43 +29,45 @@ static void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-// Implementación del Constructor
-Cliente::Cliente(int id, int edad, const char* nombre_cliente, const char* contrasena, const char* licencias) {
-    this->id = id;
-    this->edad = edad;
-    this->nombre_cliente = (char*)malloc(strlen(nombre_cliente) + 1);
-    strcpy(this->nombre_cliente, nombre_cliente);
-    this->contrasena = (char*)malloc(strlen(contrasena) + 1);
-    strcpy(this->contrasena, contrasena);
-    this->licencias = (char*)malloc(strlen(licencias) + 1);
-    strcpy(this->licencias, licencias);
+/* ── Usuario (base) ─────────────────────────────────────────────── */
+
+Usuario::Usuario(int id, const char *nombre, const char *dni) {
+    this->id     = id;
+    this->nombre = (char*)malloc(strlen(nombre) + 1);
+    strcpy(this->nombre, nombre);
+    this->dni    = (char*)malloc(strlen(dni) + 1);
+    strcpy(this->dni, dni);
 }
 
-// Implementación del Constructor Copia
-Cliente::Cliente(const Cliente& otro) {
-    this->id = otro.id;
-    this->edad = otro.edad;
-    this->nombre_cliente = (char*)malloc(strlen(otro.nombre_cliente) + 1);
-    strcpy(this->nombre_cliente, otro.nombre_cliente);
-    this->contrasena = (char*)malloc(strlen(otro.contrasena) + 1);
-    strcpy(this->contrasena, otro.contrasena);
-    this->licencias = (char*)malloc(strlen(otro.licencias) + 1);
-    strcpy(this->licencias, otro.licencias);
+Usuario::Usuario(const Usuario &otro) {
+    this->id     = otro.id;
+    this->nombre = (char*)malloc(strlen(otro.nombre) + 1);
+    strcpy(this->nombre, otro.nombre);
+    this->dni    = (char*)malloc(strlen(otro.dni) + 1);
+    strcpy(this->dni, otro.dni);
 }
 
-// Implementación del Destructor
-Cliente::~Cliente() {
-    free(nombre_cliente);
-    free(contrasena);
-    free(licencias);
-}
+Usuario::~Usuario() { free(nombre); free(dni); }
 
-// Implementación de Getters
-int Cliente::getId() const { return id; }
-int Cliente::getEdad() const { return edad; }
-const char* Cliente::getNombreCliente() const { return nombre_cliente; }
-const char* Cliente::getContrasena() const { return contrasena; }
-const char* Cliente::getLicencias() const { return licencias; }
+int         Usuario::getId()     const { return id;     }
+const char *Usuario::getNombre() const { return nombre; }
+const char *Usuario::getDni()    const { return dni;    }
+
+/* ── ClienteMayor ───────────────────────────────────────────────── */
+
+ClienteMayor::ClienteMayor(int id, const char *nombre, const char *dni)
+    : Usuario(id, nombre, dni) {}
+
+ClienteMayor::ClienteMayor(const ClienteMayor &otro) : Usuario(otro) {}
+ClienteMayor::~ClienteMayor() {}
+
+/* ── ClienteMenor ───────────────────────────────────────────────── */
+
+ClienteMenor::ClienteMenor(int id, const char *nombre, const char *dni)
+    : Usuario(id, nombre, dni) {}
+
+ClienteMenor::ClienteMenor(const ClienteMenor &otro) : Usuario(otro) {}
+ClienteMenor::~ClienteMenor() {}
 
 extern "C" int cliente_conectar(const char *ip, const char *port)
 {
@@ -195,7 +197,7 @@ int cliente_intentos_agotados() {
     return g_intentos_fallidos >= leer_max_intentos();
 }
 
-extern "C" int cliente_login() {
+extern "C" int cliente_login(int *out_es_mayor) {
     char usuario[64], password[64];
     char comando[256], respuesta[256];
 
@@ -228,6 +230,9 @@ extern "C" int cliente_login() {
             printf("[OK] Bienvenido, %s!\n", usuario);
             strncpy(g_nombre_sesion, usuario, sizeof(g_nombre_sesion) - 1);
             g_nombre_sesion[sizeof(g_nombre_sesion) - 1] = '\0';
+            if (out_es_mayor) {
+                *out_es_mayor = (strstr(respuesta, "MENOR") == NULL) ? 1 : 0;
+            }
             return 1;
         } else if (strncmp(respuesta, "USER_NOT_FOUND", 14) == 0) {
             g_intentos_fallidos++;
@@ -315,7 +320,16 @@ printf("Usuario: "); scanf("%63s", usuario); limpiarBuffer();
         }
     }
 
-    snprintf(comando, sizeof(comando), "REGISTER_CLIENTE|%s|%s|%s\n", dni, usuario, password);
+    /* Pedir fecha de nacimiento para determinar mayoría de edad */
+    char fecha_nac[16] = "";
+    do {
+        printf("Fecha de nacimiento (YYYY-MM-DD): ");
+        scanf(" %15s", fecha_nac);
+        limpiarBuffer();
+    } while (!fecha_es_valida(fecha_nac));
+
+    snprintf(comando, sizeof(comando), "REGISTER_CLIENTE|%s|%s|%s|%s\n",
+             dni, usuario, password, fecha_nac);
 
     if (cliente_enviar_recibir(g_cliente_socket, comando, respuesta, sizeof(respuesta)) > 0) {
         if (strncmp(respuesta, "OK", 2) == 0) {

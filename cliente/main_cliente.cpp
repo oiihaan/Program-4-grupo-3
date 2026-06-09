@@ -279,7 +279,7 @@ static void mostrar_noticias(int sock, const char *categoria) {
     if (total == 0) printf("  (no hay noticias)\n");
 }
 
-static void submenu_noticias(int sock) {
+static void submenu_noticias(int sock, cliente::Usuario *sesion_usr) {
     int opcion;
     do {
         server_verificar_estado();
@@ -292,7 +292,10 @@ static void submenu_noticias(int sock) {
         printf("\n--- NOTICIAS ---\n");
         printf("1. Todas las noticias\n");
         printf("2. Deportes\n");
-        printf("3. Politica\n");
+        if (sesion_usr && sesion_usr->puedeVerPolitica())
+            printf("3. Politica\n");
+        else
+            printf("3. Politica [solo mayores de edad]\n");
         printf("4. El tiempo\n");
         printf("0. Volver\n");
         printf("Seleccion: ");
@@ -303,7 +306,12 @@ static void submenu_noticias(int sock) {
         switch (opcion) {
             case 1: mostrar_noticias(sock, NULL);       break;
             case 2: mostrar_noticias(sock, "Deportes"); break;
-            case 3: mostrar_noticias(sock, "Politica"); break;
+            case 3:
+                if (sesion_usr && sesion_usr->puedeVerPolitica())
+                    mostrar_noticias(sock, "Politica");
+                else
+                    printf("[AVISO] Las noticias de Politica son solo para mayores de edad.\n");
+                break;
             case 4: mostrarTiempo();                    break;
             case 0: break;
             default: printf("[!] Opcion invalida.\n");
@@ -446,7 +454,7 @@ int main() {
     cliente_set_socket(sock);
 
     int autenticado = 0;
-    cliente::Cliente *sesion = NULL;
+    cliente::Usuario *sesion = NULL;
     while (!autenticado) {
         server_verificar_estado();
         if (!server_get_estado()) {
@@ -466,9 +474,13 @@ int main() {
         limpiarBuffer();
 
         if (opcion_inicio == 1) {
-            autenticado = cliente_login();
+            int es_mayor = 1;
+            autenticado = cliente_login(&es_mayor);
             if (autenticado) {
-                sesion = new cliente::Cliente(0, 0, cliente_get_nombre_sesion(), "", "");
+                if (es_mayor)
+                    sesion = new cliente::ClienteMayor(0, cliente_get_nombre_sesion(), "");
+                else
+                    sesion = new cliente::ClienteMenor(0, cliente_get_nombre_sesion(), "");
             }
             if (!autenticado && cliente_intentos_agotados()) {
                 printf("\n[BLOQUEADO] Has superado el numero maximo de intentos. Adios.\n");
@@ -498,7 +510,7 @@ int main() {
             break;
         }
 
-        printf("\n=== MENU PRINCIPAL — %s ===\n", sesion ? sesion->getNombreCliente() : "");
+        printf("\n=== MENU PRINCIPAL — %s ===\n", sesion ? sesion->getNombre() : "");
         printf("1. Ver espacios disponibles\n");
         printf("2. Mis reservas\n");
         printf("3. Noticias\n");
@@ -513,11 +525,11 @@ int main() {
         switch (opcion) {
             case 1: submenu_espacios(sock);  break;
             case 2: submenu_reservas(sock);  break;
-            case 3: submenu_noticias(sock);  break;
+            case 3: submenu_noticias(sock, sesion);  break;
             case 4: submenu_licencias(sock); break;
             case 5: {
                 int sub_op;
-                printf("\n--- MI CUENTA (%s) ---\n", sesion ? sesion->getNombreCliente() : "");
+                printf("\n--- MI CUENTA (%s) — %s ---\n", sesion ? sesion->getNombre() : "", sesion ? sesion->getTipo() : "");
                 printf("1. Cambiar contrasena\n");
                 printf("0. Volver\n");
                 printf("Seleccion: ");

@@ -183,7 +183,7 @@ static int handle_login_no_existe(const char *usuario) {
 static int handle_login(const char *usuario, const char *password,
                         char *dni_out, char *respuesta) {
     sqlite3_stmt *stmt;
-    const char *sql = "SELECT password, fecha_creacion, dni FROM Cliente "
+    const char *sql = "SELECT password, fecha_creacion, dni, fecha_nacimiento FROM Cliente "
                       "WHERE nombre_cliente=? AND activo=1;";
     int ok = 0;
 
@@ -215,7 +215,18 @@ static int handle_login(const char *usuario, const char *password,
             auth_generar_hash(password, fecha_db, hash_calc);
 
             if (strcmp(hash_db, hash_calc) == 0) {
-                snprintf(respuesta, MAXDATASIZE, "OK|LOGIN_SUCCESS");
+                const char *fn = (const char *)sqlite3_column_text(stmt, 3);
+                int mayor = 1; /* por defecto mayor si no hay fecha */
+                if (fn && fn[0]) {
+                    int anio=0,mes=0,dia=0;
+                    sscanf(fn, "%4d-%2d-%2d", &anio, &mes, &dia);
+                    time_t ahora = time(NULL);
+                    struct tm *hoy = localtime(&ahora);
+                    int edad = (hoy->tm_year+1900) - anio;
+                    if ((hoy->tm_mon+1) < mes || ((hoy->tm_mon+1)==mes && hoy->tm_mday < dia)) edad--;
+                    mayor = (edad >= 18);
+                }
+                snprintf(respuesta, MAXDATASIZE, "OK|LOGIN_SUCCESS|%s", mayor ? "MAYOR" : "MENOR");
                 if (dni_out) strncpy(dni_out, dni_db, 31);
                 ok = 1;
             }
@@ -227,7 +238,8 @@ static int handle_login(const char *usuario, const char *password,
 }
 
 static void handle_register(const char *dni, const char *usuario,
-                            const char *password, char *respuesta) {
+                            const char *password, const char *fecha_nac,
+                            char *respuesta) {
     sqlite3_stmt *stmt = NULL;
     char hash_final[65], fecha_aux[32] = "";
 
@@ -273,8 +285,8 @@ static void handle_register(const char *dni, const char *usuario,
     auth_generar_hash(password, fecha_aux, hash_final);
 
     const char *sql_ins =
-        "INSERT INTO Cliente (dni, nombre_cliente, password, activo, fecha_creacion) "
-        "VALUES (?, ?, ?, 1, ?);";
+        "INSERT INTO Cliente (dni, nombre_cliente, password, fecha_nacimiento, activo, fecha_creacion) "
+        "VALUES (?, ?, ?, ?, 1, ?);";
     if (sqlite3_prepare_v2(db, sql_ins, -1, &stmt, NULL) != SQLITE_OK) {
         snprintf(respuesta, MAXDATASIZE, "ERROR|Fallo SQL: %s", sqlite3_errmsg(db));
         return;
@@ -283,7 +295,8 @@ static void handle_register(const char *dni, const char *usuario,
     sqlite3_bind_text(stmt, 1, dni,        -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 2, usuario,    -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 3, hash_final, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 4, fecha_aux,  -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 4, fecha_nac ? fecha_nac : "", -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 5, fecha_aux,  -1, SQLITE_TRANSIENT);
 
     if (sqlite3_step(stmt) != SQLITE_DONE) {
         const char *sql_err = sqlite3_errmsg(db);
@@ -707,8 +720,9 @@ static void manejar_cliente(int fd) {
             char *dni      = strtok(NULL, "|");
             char *usuario  = strtok(NULL, "|");
             char *password = strtok(NULL, "|");
+            char *fecha_nac = strtok(NULL, "|\r\n");
             if (dni && usuario && password) {
-                handle_register(dni, usuario, password, respuesta);
+                handle_register(dni, usuario, password, fecha_nac, respuesta);
                 if (strncmp(respuesta, "OK", 2) == 0)
                     log_login_escribir(usuario, "Nuevo cliente registrado");
             } else {
