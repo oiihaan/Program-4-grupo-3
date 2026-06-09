@@ -1,0 +1,6 @@
+# Forzar LF para archivos que se usan desde WSL/Linux
+Makefile        eol=lf
+*.c             eol=lf
+*.cpp           eol=lf
+*.h             eol=lf
+*.conf          eol=lf

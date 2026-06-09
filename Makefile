@@ -86,4 +86,33 @@ clean:
 	rm -f src/*.o admin/*.o server/*.o cliente/*.o build/*.exe
 
 .PHONY: all run run-server run-cliente stop-server clean
-	
+
+# ---------------------------------------------------------------
+# Tests unitarios / integración  —  make test
+#
+# Requisitos en WSL/Ubuntu:
+#   sudo apt install libsqlite3-dev libcurl4-openssl-dev
+# ---------------------------------------------------------------
+TEST_DIR  = tests
+TEST_CC   = $(CC) -Iinclude -I$(TEST_DIR) -I/tmp/sqlite3-dev-extracted/usr/include
+TEST_LIBS = -L/tmp -lsqlite3 -lcurl -lm
+
+build/test_funciones: $(TEST_DIR)/test_funciones.c src/funciones.c $(TEST_DIR)/stubs.c $(TEST_DIR)/test_framework.h
+	@$(TEST_CC) $^ $(TEST_LIBS) -o $@
+
+build/test_tiempo: $(TEST_DIR)/test_tiempo.c admin/reservas.c src/funciones.c $(TEST_DIR)/stubs.c $(TEST_DIR)/test_framework.h
+	@$(TEST_CC) $^ $(TEST_LIBS) -o $@
+
+build/test_auth: $(TEST_DIR)/test_auth.c src/auth.c src/sa256.c src/utils.c src/funciones.c $(TEST_DIR)/stubs.c $(TEST_DIR)/test_framework.h
+	@$(TEST_CC) $^ $(TEST_LIBS) -o $@
+
+build/test_db: $(TEST_DIR)/test_db.c src/db.c $(TEST_DIR)/stubs_db.c $(TEST_DIR)/test_framework.h
+	@$(TEST_CC) $^ $(TEST_LIBS) -o $@
+
+test: $(BUILD_DIR) build/test_funciones build/test_tiempo build/test_auth build/test_db
+	@./build/test_funciones
+	@./build/test_tiempo
+	@./build/test_auth
+	@./build/test_db
+
+.PHONY: test
