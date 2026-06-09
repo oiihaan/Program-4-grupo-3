@@ -5,12 +5,20 @@ Oihan Saez de Cortazar, Pablo Gonzalez, Danel Pozo, Unai Garcia, Markel Vesga y 
 ---
 
 ## Descripción
-Aplicación de consola en C para la gestión interna del Ayuntamiento de Donostia-San Sebastián. Permite administrar espacios públicos y reservas, publicar noticias y alertas, gestionar licencias y permisos, y consultar el tiempo de la próxima semana mediante una API externa.
+Aplicación de consola en C/C++ para la gestión interna del Ayuntamiento de Donostia-San Sebastián.  
+El sistema sigue una **arquitectura cliente-servidor TCP**: un servidor central gestiona la base de datos y atiende peticiones tanto del panel de administración como de clientes ciudadanos conectados en red.
+
+Funcionalidades principales:
+- Administrar espacios públicos y reservas
+- Publicar, editar y eliminar noticias y alertas por categoría
+- Gestionar licencias y permisos municipales
+- Consultar la previsión meteorológica de la próxima semana (API externa)
+- Gestión de usuarios administradores y autenticación segura
 
 ---
 
 ## Requisitos previos
-Antes de compilar, instala las siguientes librerías en tu sistema Linux / WSL:
+Instala las siguientes librerías en tu sistema Linux / WSL antes de compilar:
 ```bash
 sudo apt install libsqlite3-dev
 sudo apt install libcurl4-openssl-dev
@@ -19,36 +27,67 @@ sudo apt install libcurl4-openssl-dev
 
 ---
 
-## Compilación y ejecución
+## Compilación
 El proyecto incluye un **Makefile**. Desde la raíz del proyecto ejecuta:
 ```bash
+make        # Compila los tres ejecutables (main.exe, servidor.exe, cliente.exe)
+make clean  # Elimina todos los objetos y ejecutables generados
+```
+
+---
+
+## Modos de ejecución
+
+El sistema genera **tres ejecutables** independientes en `build/`:
+
+### 1. Panel de administración (`main.exe`) — punto de entrada principal
+Interfaz de consola para el administrador municipal. **El servidor TCP se arranca y detiene desde dentro del propio panel**, en la sección de configuración. No es necesario lanzarlo manualmente.
+```bash
 make run
+# o bien directamente:
+./build/main.exe
 ```
-Esto compilará el proyecto automáticamente y lo ejecutará. Para compilar sin ejecutar:
+
+### 2. Cliente ciudadano (`cliente.exe`)
+Interfaz de consola para ciudadanos que se conectan al servidor mediante TCP. Requiere que el servidor esté activo (iniciado previamente desde el panel de administración).
 ```bash
-make
+make run-cliente
+# o bien directamente:
+./build/cliente.exe
 ```
-Para limpiar los archivos compilados:
+
+### Targets auxiliares del Makefile
+`make run-server` y `make stop-server` son atajos de línea de comandos para arrancar/detener el servidor sin pasar por el panel. Están pensados para pruebas o entornos de desarrollo, no son el flujo de uso habitual.
 ```bash
-make clean
+make run-server   # Arranca el servidor en segundo plano y lanza el panel
+make stop-server  # Detiene el servidor manualmente
 ```
 
 ---
 
 ## Primer inicio
-Al primer arranque del sistema, se iniciará automáticamente el modo de configuración inicial (setup), en el que se solicitarán las credenciales necesarias para crear el administrador principal.
+Al primer arranque del sistema se ejecuta automáticamente el modo de **configuración inicial (setup)**, en el que se solicitan las credenciales para crear el administrador principal.
 
-Nota: Este proceso solo se ejecuta una única vez, ya sea en el primer lanzamiento del programa o tras la eliminación de la base de datos. 
+> Este proceso ocurre una única vez: en el primer lanzamiento o tras eliminar la base de datos.
+
+---
+
+## Tests
+El proyecto incluye una suite de tests unitarios e integración:
+```bash
+make test
+```
+Los tests cubren los módulos `funciones`, `auth`, `db` y las funciones de tiempo. Requieren las mismas dependencias que la compilación principal.
 
 ---
 
 ## Seguridad y Criptografía
-El sistema implementa un esquema de seguridad robusto para la gestión de identidades:
+El sistema implementa un esquema robusto para la gestión de identidades:
 
-- **Hashing de contraseñas:** Las contraseñas nunca se almacenan en texto plano. Se utiliza el algoritmo SHA-256 para generar un resumen irreversible.
-- **Salting dinámico:** Para evitar ataques de diccionario, se utiliza la columna `fecha_creacion` de cada usuario como "sal". Esto garantiza que, aunque dos administradores usen la misma contraseña, sus hashes en la base de datos sean completamente diferentes.
-- **Implementación:** La lógica criptográfica utiliza la librería [TinyCrypt (Intel)](https://github.com/intel/tinycrypt/tree/master).
-- **Intentos de login:** El sistema limita los intentos de autenticación fallidos consecutivos y cierra el programa tras superarse el límite.
+- **Hashing de contraseñas:** Las contraseñas nunca se almacenan en texto plano. Se utiliza SHA-256 para generar un resumen irreversible.
+- **Salting dinámico:** Se usa la columna `fecha_creacion` de cada usuario como "sal", garantizando que dos administradores con la misma contraseña tengan hashes distintos en la base de datos.
+- **Implementación criptográfica:** Basada en la librería [TinyCrypt (Intel)](https://github.com/intel/tinycrypt/tree/master).
+- **Intentos de login:** El sistema limita los intentos fallidos consecutivos y cierra el programa al superarse el límite (configurable en `server.conf`).
 
 ---
 
@@ -57,10 +96,10 @@ El sistema implementa un esquema de seguridad robusto para la gestión de identi
 - **Gestión de espacios** — Añadir, listar, eliminar y cambiar estado (ACTIVO / BAJA) de espacios municipales
 - **Reservas** — Consultar reservas por espacio, crear y cancelar reservas de ciudadanos
 - **Noticias** — Publicar, editar y eliminar publicaciones por categoría, además de previsión meteorológica
-- **Licencias** — Registrar licencia, administrar tipos de licencia, actualizar estados y consultar expedientes
-- **Configuración** — Gestión de usuarios y contraseñas de administradores
+- **Licencias** — Registrar licencias, administrar tipos, actualizar estados y consultar expedientes
+- **Configuración** — Gestión de usuarios y contraseñas de administradores; arranque/parada del servidor TCP desde el panel
 - **Log del sistema** — Registro automático de todas las acciones en `log.txt`, incluyendo inicios de sesión y errores de autenticación
-- **Prevención de errores** — Validación de formato y rangos de valores en todas las entradas del usuario
+- **Prevención de errores** — Validación de formato y rangos en todas las entradas del usuario
 
 ---
 
@@ -72,7 +111,7 @@ El sistema gestiona las siguientes tablas en SQLite:
 | `Admin`        | Administradores del sistema                     |
 | `Espacio`      | Espacios municipales disponibles                |
 | `Reserva`      | Reservas de ciudadanos sobre espacios           |
-| `Publicacion`  | Publicaciones                                   |
+| `Publicacion`  | Noticias y publicaciones municipales            |
 | `TipoLicencia` | Tipos de licencia disponibles                   |
 | `Licencia`     | Expedientes de licencias de ciudadanos          |
 
@@ -81,39 +120,70 @@ El sistema gestiona las siguientes tablas en SQLite:
 ## Estructura del proyecto
 ```
 Program-4-grupo-3/
-├── include/          # Cabeceras .h
-├── src/              # Código fuente .c
-│   ├── main.c
+├── include/              # Cabeceras .h
+├── src/                  # Módulos comunes (C)
+│   ├── main.cpp          # Panel de administración
 │   ├── auth.c
-│   ├── config.c
 │   ├── db.c
-│   ├── espacios.c
 │   ├── funciones.c
-│   └── licencias.c (+ otros módulos)
-├── build/            # Ejecutable generado
+│   ├── log.c
+│   ├── noticias_consulta.c
+│   ├── sa256.c
+│   └── utils.c
+├── admin/                # Módulos exclusivos del panel admin (C)
+│   ├── config.c
+│   ├── espacios.c
+│   ├── licencias.c
+│   ├── noticias.c
+│   └── reservas.c
+├── server/               # Servidor TCP (C++)
+│   └── server.cpp
+├── cliente/              # Cliente ciudadano (C++)
+│   ├── cliente.cpp
+│   └── main_cliente.cpp
+├── tests/                # Tests unitarios e integración
+│   ├── test_framework.h
+│   ├── test_auth.c
+│   ├── test_db.c
+│   ├── test_funciones.c
+│   ├── test_tiempo.c
+│   ├── stubs.c
+│   └── stubs_db.c
+├── build/                # Ejecutables generados
+│   ├── main.exe
+│   ├── servidor.exe
+│   └── cliente.exe
 ├── Makefile
-├── server.conf       # Configuración del servidor (BD, usuario, puerto)
-├── log.txt           # Registro de actividad (se crea al ejecutar)
-└──ayuntamiento.db    # Base de datos del sistema (se crea al ejecutar)
+├── server.conf           # Configuración del servidor
+├── log.txt               # Registro de actividad (se crea al ejecutar)
+└── ayuntamiento.db       # Base de datos SQLite (se crea al ejecutar)
 ```
 
 ---
 
 ## Configuración (`server.conf`)
-El fichero `server.conf` permite ajustar parámetros básicos del sistema:
+El fichero `server.conf` permite ajustar los parámetros básicos del sistema:
 ```
 db_ruta=./ayuntamiento.db
 admin_usuario=admin
 server_puerto=8080
-max_intentos=5
+max_intentos=3
 hora_apertura=09:00
 hora_cierre=21:00
-
 ```
+
+| Parámetro        | Descripción                                              |
+|------------------|----------------------------------------------------------|
+| `db_ruta`        | Ruta a la base de datos SQLite                          |
+| `admin_usuario`  | Nombre de usuario del administrador por defecto          |
+| `server_puerto`  | Puerto TCP en el que escucha el servidor                 |
+| `max_intentos`   | Intentos de login fallidos antes de bloquear el acceso   |
+| `hora_apertura`  | Hora de inicio del servicio al ciudadano                 |
+| `hora_cierre`    | Hora de cierre del servicio al ciudadano                 |
 
 ---
 
 ## Notas
-- La API del tiempo utiliza [Open-Meteo](https://open-meteo.com/) — servicio gratuito sin necesidad de registro. Requiere conexión a internet. Si el servidor está caído, el sistema lo notificará con un mensaje de error.
-- La base de datos y el log se generan automáticamente en el primer arranque, no es necesario crearlos manualmente.
-- El proyecto usa Git; consulta [.gitignore] para archivos excluidos de control de versiones.
+- La API del tiempo utiliza [Open-Meteo](https://open-meteo.com/) — servicio gratuito sin registro. Requiere conexión a internet. Si el servidor está caído, el sistema lo notifica con un mensaje de error.
+- La base de datos y el log se generan automáticamente en el primer arranque; no es necesario crearlos manualmente.
+- El proyecto usa Git; consulta [`.gitignore`](.gitignore) para los archivos excluidos del control de versiones.
