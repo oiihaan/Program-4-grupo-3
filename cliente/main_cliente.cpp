@@ -251,12 +251,26 @@ static void mostrar_noticias(int sock, const char *categoria) {
     int total = 0;
     while ((linea = strtok(NULL, "\n")) != NULL) {
         if (strcmp(linea, "END") == 0) break;
-        int id;
-        char cat[32], tit[128], enlace[256], fecha[32], usuario[64];
-        strcpy(usuario, "-");
-        int campos = sscanf(linea, "%d;%31[^;];%127[^;];%255[^;];%31[^;];%63[^;\n]",
-                            &id, cat, tit, enlace, fecha, usuario);
-        if (campos >= 5) {
+        /* Parsear manualmente para soportar enlace vacío (;;) */
+        int id = 0;
+        char cat[32]="", tit[128]="", enlace[256]="", fecha[32]="", usuario[64]="-";
+        char *p = linea;
+        char *sep;
+        /* campo 1: id */
+        id = (int)strtol(p, &sep, 10); if (sep == p || *sep != ';') continue; p = sep + 1;
+        /* campo 2: categoria */
+        sep = strchr(p, ';'); if (!sep) continue; *sep = '\0'; strncpy(cat, p, 31); p = sep + 1;
+        /* campo 3: titulo */
+        sep = strchr(p, ';'); if (!sep) continue; *sep = '\0'; strncpy(tit, p, 127); p = sep + 1;
+        /* campo 4: enlace (puede ser vacío) */
+        sep = strchr(p, ';'); if (!sep) continue; *sep = '\0'; strncpy(enlace, p, 255); p = sep + 1;
+        /* campo 5: fecha */
+        sep = strchr(p, ';'); 
+        if (sep) { *sep = '\0'; strncpy(fecha, p, 31); p = sep + 1;
+            /* campo 6: usuario (opcional) */
+            strncpy(usuario, p, 63); }
+        else { strncpy(fecha, p, 31); }
+        if (fecha[0] != '\0') {
             printf("  %-4d %-12s %-32s %-12s %-12s\n", id, cat, tit, fecha, usuario);
             if (enlace[0] != '\0') printf("       Enlace: %s\n", enlace);
             total++;
@@ -279,6 +293,7 @@ static void submenu_noticias(int sock) {
         printf("1. Todas las noticias\n");
         printf("2. Deportes\n");
         printf("3. Politica\n");
+        printf("4. El tiempo\n");
         printf("0. Volver\n");
         printf("Seleccion: ");
 
@@ -289,6 +304,7 @@ static void submenu_noticias(int sock) {
             case 1: mostrar_noticias(sock, NULL);       break;
             case 2: mostrar_noticias(sock, "Deportes"); break;
             case 3: mostrar_noticias(sock, "Politica"); break;
+            case 4: mostrarTiempo();                    break;
             case 0: break;
             default: printf("[!] Opcion invalida.\n");
         }

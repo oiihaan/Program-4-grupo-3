@@ -11,7 +11,6 @@
 // estas las he pillado que estaban abajo revisar si sirven de algo
 #include <termios.h>
 #include <unistd.h>
-#include "funciones.h"
 
 void limpiarBuffer()
 {
@@ -245,4 +244,129 @@ float obtener_float_validado(float minimo, float maximo)
 
     limpiarBuffer();
     return valor;
+}
+
+/* ── mostrarTiempo — consulta API meteorológica (curl, sin BD) ── */
+#include <curl/curl.h>
+#include "../include/noticias.h"   /* typedef Dia */
+
+
+#define URL_TIEMPO_FC \
+    "https://api.open-meteo.com/v1/forecast?latitude=43.3128&longitude=-1.975" \
+    "&daily=weather_code,temperature_2m_max,temperature_2m_min,rain_sum" \
+    "&timezone=Europe%2FBerlin"
+
+typedef struct { char *datos; size_t tam; } RespuestaCurl;
+
+static size_t callback_curl_fc(void *contenido, size_t tam, size_t nmemb, RespuestaCurl *resp)
+{
+    size_t total = tam * nmemb;
+    resp->datos = realloc(resp->datos, resp->tam + total + 1);
+    if (!resp->datos) return 0;
+    memcpy(resp->datos + resp->tam, contenido, total);
+    resp->tam += total;
+    resp->datos[resp->tam] = '\0';
+    return total;
+}
+
+static char *extraer_array_fc(const char *json, const char *campo)
+{
+    char buscar[64];
+    snprintf(buscar, sizeof(buscar), "\"%s\":[", campo);
+    char *ini = strstr(json, buscar);
+    if (!ini) return NULL;
+    ini = strchr(ini, '[') + 1;
+    char *fin = strchr(ini, ']');
+    if (!fin) return NULL;
+    size_t len = fin - ini;
+    char *resultado = malloc(len + 1);
+    strncpy(resultado, ini, len);
+    resultado[len] = '\0';
+    return resultado;
+}
+
+static const char *descripcion_clima_fc(int codigo)
+{
+    if (codigo == 0)  return "Despejado";
+    if (codigo <= 3)  return "Parcialmente nublado";
+    if (codigo <= 48) return "Niebla";
+    if (codigo <= 57) return "Llovizna";
+    if (codigo <= 67) return "Lluvia";
+    if (codigo <= 77) return "Nieve";
+    if (codigo <= 82) return "Chubascos";
+    if (codigo <= 99) return "Tormenta";
+    return "Desconocido";
+}
+
+void mostrarTiempo()
+{
+    printf("\n--- TIEMPO EN DONOSTI (proximos 7 dias) ---\n");
+    CURL *curl = curl_easy_init();
+    if (!curl) { printf("[ERROR] No se pudo inicializar curl.\n"); return; }
+
+    RespuestaCurl resp;
+    resp.datos = malloc(1);
+    resp.tam   = 0;
+    resp.datos[0] = '\0';
+
+    curl_easy_setopt(curl, CURLOPT_URL,           URL_TIEMPO_FC);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback_curl_fc);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA,     &resp);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT,       10L);
+
+    CURLcode res = curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+
+    if (res != CURLE_OK) {
+        printf("[ERROR] No se pudo obtener el tiempo: %s\n", curl_easy_strerror(res));
+        free(resp.datos); return;
+    }
+    if (strstr(resp.datos, "<html>") != NULL) {
+        printf("[ERROR] El servidor de la API no esta disponible. Intentalo mas tarde.\n");
+        free(resp.datos); return;
+    }
+
+    char *arr_fechas = extraer_array_fc(resp.datos, "time");
+    char *arr_max    = extraer_array_fc(resp.datos, "temperature_2m_max");
+    char *arr_min    = extraer_array_fc(resp.datos, "temperature_2m_min");
+    char *arr_lluvia = extraer_array_fc(resp.datos, "rain_sum");
+    char *arr_codigo = extraer_array_fc(resp.datos, "weather_code");
+
+    if (!arr_fechas || !arr_max || !arr_min || !arr_lluvia || !arr_codigo) {
+        printf("[ERROR] No se pudo parsear la respuesta.\n");
+    } else {
+        Dia dias[7];
+        char *pfec = arr_fechas, *pmax = arr_max, *pmin = arr_min;
+        char *pllu = arr_lluvia, *pcod = arr_codigo;
+
+        for (int i = 0; i < 7; i++) {
+            char *ini = strchr(pfec, '"');
+            if (!ini) break;
+            ini++;
+            char *fin = strchr(ini, '"');
+            if (!fin) break;
+            strncpy(dias[i].fecha, ini, fin - ini);
+            dias[i].fecha[fin - ini] = '\0';
+            pfec = fin + 1;
+
+            if (sscanf(pmax, "%f", &dias[i].temp_max) != 1) break;
+            if (sscanf(pmin, "%f", &dias[i].temp_min) != 1) break;
+            if (sscanf(pllu, "%f", &dias[i].lluvia)   != 1) break;
+            if (sscanf(pcod, "%d", &dias[i].codigo_clima) != 1) break;
+
+            pmax = strchr(pmax, ','); if (pmax) pmax++;
+            pmin = strchr(pmin, ','); if (pmin) pmin++;
+            pllu = strchr(pllu, ','); if (pllu) pllu++;
+            pcod = strchr(pcod, ','); if (pcod) pcod++;
+        }
+
+        for (int i = 0; i < 7; i++) {
+            printf("  %-10s | Min: %4.0f\xc2\xb0""C Max: %4.0f\xc2\xb0""C | %-20s | Lluvia: %5.1fmm\n",
+                   dias[i].fecha, dias[i].temp_min, dias[i].temp_max,
+                   descripcion_clima_fc(dias[i].codigo_clima), dias[i].lluvia);
+        }
+    }
+
+    free(arr_fechas); free(arr_max); free(arr_min);
+    free(arr_lluvia); free(arr_codigo); free(resp.datos);
 }

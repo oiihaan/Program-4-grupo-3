@@ -9,12 +9,12 @@ LIBS = -lsqlite3 -lcurl
 C_COMMON = src/auth.c src/db.c src/funciones.c src/log.c src/sa256.c src/utils.c
 
 # Admin: archivos comunes + módulos de admin
-ADMIN_C   = $(C_COMMON) $(wildcard admin/*.c)
+ADMIN_C   = $(C_COMMON) src/noticias_consulta.c $(wildcard admin/*.c)
 ADMIN_CPP = src/main.cpp
 ADMIN_OBJ = $(ADMIN_C:.c=.o) $(ADMIN_CPP:.cpp=.o) server/server_admin.o
 
 # Servidor
-SERVER_C   = $(C_COMMON) admin/config.c
+SERVER_C   = $(C_COMMON) src/noticias_consulta.c admin/config.c
 SERVER_CPP = server/server.cpp
 SERVER_OBJ = $(SERVER_C:.c=.o) $(SERVER_CPP:.cpp=.o)
 

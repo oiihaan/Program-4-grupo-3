@@ -1,7 +1,9 @@
 #ifndef NOTICIAS_H
 #define NOTICIAS_H
 
-void verNoticias();
+/* Las funciones de consulta (verNoticias, mostrarDeportes,
+   mostrarPolitica, noticia_listar, mostrarTiempo) se declaran
+   en funciones.h y se implementan en src/funciones.c           */
 
 typedef struct {
     char fecha[16];
@@ -10,12 +12,10 @@ typedef struct {
     float lluvia;
     int codigo_clima;
 } Dia;
+
+/* ── Funciones exclusivas del modulo admin de noticias ── */
 void submenuNoticias();
-void mostrarTiempo();
 void noticia_publicar();
-void mostrarDeportes();
-void mostrarPolitica();
-void noticia_listar(); //Muestra todas las noticias, incluso las eliminadas
-void noticia_gestionar(); //Menu para editar o eliminar noticias
+void noticia_gestionar(); /* Menu para editar o eliminar noticias */
 
 #endif // NOTICIAS_H

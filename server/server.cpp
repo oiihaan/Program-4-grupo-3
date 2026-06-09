@@ -764,6 +764,8 @@ static void manejar_cliente(int fd) {
         // ── Noticias ──────────────────────────────────────────────────────────
         else if (strcmp(cmd, "LISTAR_NOTICIAS") == 0) {
             char *categoria = strtok(NULL, "|");  // puede ser NULL (todas)
+            // Limpiar \r\n que el cliente deja pegado al final de la categoria
+            if (categoria) { char *nl = strpbrk(categoria, "\r\n"); if (nl) *nl = '\0'; }
             handle_listar_noticias(categoria, respuesta);
         }
         // ── Licencias ─────────────────────────────────────────────────────────

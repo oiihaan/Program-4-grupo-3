@@ -10,4 +10,12 @@ int comprobar_contrasena(const char *contrasena);
 int obtener_entero_validado(int minimo, int maximo);
 float obtener_float_validado(float minimo, float maximo);
 
+
+/* ── Consulta de noticias (compartida: admin, servidor, cliente) ── */
+void verNoticias();      /* Submenu: deportes / politica / tiempo / todas */
+void mostrarDeportes();  /* Lista noticias categoria Deportes             */
+void mostrarPolitica();  /* Lista noticias categoria Politica             */
+void noticia_listar();   /* Lista todas las noticias                      */
+void mostrarTiempo();    /* Muestra previsión meteorológica via API        */
+
 #endif 
